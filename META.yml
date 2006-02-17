@@ -1,0 +1,19 @@
+
+abstract: Pluggable RSS/Atom Aggregator
+author: Tatsuhiko Miyagawa <miyagawa@bulknews.net>
+build_requires: 
+  Test::More: 0.42
+distribution_type: module
+generated_by: Module::Install version 0.55
+license: perl
+name: Plagger
+no_index: 
+  directory: 
+    - inc
+    - t
+recommends: 
+  WebService::Bloglines: 0.06
+requires: 
+  YAML: 0.39
+  perl: 5.8.1
+version: 0.5.1
