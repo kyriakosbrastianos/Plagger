@@ -20,8 +20,17 @@ sub load {
     my $uri = URI->new($self->conf->{url})
         or $context->error("config 'url' is missing");
 
+    $self->load_opml($context, $uri);
+}
+
+sub load_opml {
+    my($self, $context, $uri) = @_;
+
     my $xml;
-    if ($uri->scheme =~ /^https?$/) {
+    if (ref($uri) eq 'SCALAR') {
+        $xml = $$uri;
+    }
+    elsif ($uri->scheme =~ /^https?$/) {
         $context->log(debug => "Fetch remote OPML from $uri");
         my $response = Plagger::UserAgent->new->get($uri);
         unless ($response->is_success) {
@@ -67,3 +76,31 @@ sub walk_down {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Plagger::Plugin::Subscrption::OPML - OPML subscription
+
+=head1 SYNOPSIS
+
+  - module: Subscription::OPML
+    config:
+      url: http://example.com/mySubscriptions.opml
+
+=head1 DESCRIPTION
+
+This plugin creates Subscription by fetching remote OPML file by HTTP
+or locally (with C<file://> URI). It supports nested folder structure
+of OPML subscription.
+
+=head1 AUTHOR
+
+Tatsuhiko Miyagawa
+
+=head1 SEE ALSO
+
+L<Plagger>, L<XML::OPML>
+
+=cut
