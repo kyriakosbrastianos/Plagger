@@ -29,10 +29,18 @@ sub now {
     my($class, %opt) = @_;
     my $self = $class->SUPER::now();
 
-    my $tz = $opt{timezone} || 'local';
+    my $tz = $opt{timezone} || Plagger->context->conf->{timezone} || 'local';
     $self->set_time_zone($tz);
 
     $self;
+}
+
+sub from_epoch {
+    my $class = shift;
+    my %p = @_ == 1 ? (epoch => $_[0]) : @_;
+
+    $p{time_zone} = Plagger->context->conf->{timezone} || 'local';
+    $class->SUPER::from_epoch(%p);
 }
 
 sub format {

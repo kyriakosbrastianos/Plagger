@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.5.2';
+our $VERSION = '0.5.3';
 
 use 5.8.1;
 use Carp;
@@ -41,6 +41,7 @@ sub bootstrap {
     if (-e $opt{config} && -r _) {
         $config = YAML::LoadFile($opt{config});
         $self->{conf} = $config->{global};
+        $self->{conf}->{log} ||= { level => 'debug' };
     } else {
         croak "Plagger->bootstrap: $opt{config}: $!";
     }
@@ -140,6 +141,7 @@ sub run {
             $self->run_hook("aggregator.aggregate.$type", { feed => $feed });
         }
     }
+    $self->run_hook('aggregator.finalize');
 
     for my $feed ($self->update->feeds) {
         for my $entry ($feed->entries) {
@@ -156,12 +158,19 @@ sub run {
             $self->run_hook('smartfeed.entry', { feed => $feed, entry => $entry });
         }
     }
+    $self->run_hook('smartfeed.finalize');
 
+    $self->run_hook('publish.init');
     for my $feed ($self->update->feeds) {
         for my $entry ($feed->entries) {
             $self->run_hook('publish.entry.fixup', { feed => $feed, entry => $entry });
         }
+
         $self->run_hook('publish.feed', { feed => $feed });
+
+        for my $entry ($feed->entries) {
+            $self->run_hook('publish.entry', { feed => $feed, entry => $entry });
+        }
     }
 
     $self->run_hook('publish.finalize');
@@ -171,7 +180,21 @@ sub log {
     my($self, $level, $msg) = @_;
     my $caller = caller(0);
     chomp($msg);
-    warn "$caller [$level] $msg\n";
+    if ($self->should_log($level)) {
+        warn "$caller [$level] $msg\n";
+    }
+}
+
+my %levels = (
+    debug => 0,
+    warn  => 1,
+    info  => 2,
+    error => 3,
+);
+
+sub should_log {
+    my($self, $level) = @_;
+    $levels{$level} >= $levels{$self->conf->{log}->{level}};
 }
 
 sub error {

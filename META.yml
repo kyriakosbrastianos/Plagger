@@ -16,4 +16,4 @@ recommends:
 requires: 
   YAML: 0.39
   perl: 5.8.1
-version: 0.5.2
+version: 0.5.3

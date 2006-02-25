@@ -101,6 +101,7 @@ sub sync {
             $entry->date( Plagger::Date->parse('Mail', $item->{pubDate}) );
             $entry->link($item->{link});
             $entry->id($item->{guid});
+
             $entry->body($item->{description});
 
             $feed->add_entry($entry);

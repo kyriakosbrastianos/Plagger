@@ -64,9 +64,21 @@ sub aggregate {
                 my $body = decode('euc-jp', $item->{description});
                    $body =~ s!<br>!<br />!g;
                 $entry->body($body);
+                $entry->title( decode('euc-jp', $item->{subject}) ); # replace with full title
             } else {
                 $context->log(warn => "Fetch body failed. You might be blocked?");
                 $blocked++;
+            }
+        }
+
+        if ($self->conf->{show_icon} && !$blocked) {
+            my $item = $self->fetch_icon($msg->{user_link});
+            if ($item && $item->{image} !~ /no_photo/) {
+                $entry->icon({
+                    title => decode('euc-jp', $item->{name}),
+                    url   => $item->{image},
+                    link  => $msg->{user_link},
+                });
             }
         }
 
@@ -74,6 +86,17 @@ sub aggregate {
     }
 
     $context->update->add($feed);
+}
+
+sub fetch_icon {
+    my($self, $url) = @_;
+
+    unless ($self->{__icon_cache}->{$url}) {
+        Plagger->context->log(info => "Fetch icon from $url");
+        $self->{__icon_cache}->{$url} = $self->{frepa}->get_top($url);
+    }
+
+    $self->{__icon_cache}->{$url};
 }
 
 package Plagger::Plugin::CustomFeed::Frepa::Mechanize;
@@ -142,8 +165,28 @@ sub get_view_diary {
     my $html = $self->{mecha}->content;
     my $reg = $self->detail_regexp();
     if ($html =~ m|$reg|is) {
-        $item = +{description => $7};
+        $item = +{ subject => $6, description => $7};
     }
+
+    return $item;
+}
+
+sub get_top {
+    my $self = shift;
+    my $link = shift;
+
+    my $item;
+    my $res = $self->{mecha}->get($link);
+    return $item unless $self->{mecha}->success;
+
+    my $html = $self->{mecha}->content;
+
+    chomp( my $re  = $self->top_re );
+    if ($html =~ /$re/s) {
+        $item->{image} = $1;
+        $item->{name}  = $2;
+    }
+
     return $item;
 }
 
@@ -182,6 +225,15 @@ sub detail_regexp {
 </table>
 RE
 ;
+}
+
+sub top_re {
+    return <<'RE';
+<a href="http://frepa\.livedoor\.com/.*?/"><img src="(http://img\d+\.ico\.frepa\.livedoor\.com/member_photo/.*?\.(?:jpe?g|JPE?G|gif|GIF))" border="0"></a>
+</small>
+.*?
+<div id="namebody"><small><strong>(.*?)....</strong>
+RE
 }
 
 1;

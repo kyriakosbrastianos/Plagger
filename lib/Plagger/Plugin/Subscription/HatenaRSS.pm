@@ -16,6 +16,9 @@ sub register {
 sub load {
     my($self, $context) = @_;
 
+    my $username = $self->conf->{username}
+        or $context->error('username is missing');
+
     my $start = "https://www.hatena.ne.jp/login?backurl=http%3A%2F%2Fr.hatena.ne.jp%2F";
 
     # TODO: we should save the cookie and reuse
@@ -24,18 +27,19 @@ sub load {
 
     $mech->submit_form(
         fields => {
-            key      => $self->conf->{username},
+            key      => $username,
             password => $self->conf->{password},
         },
     );
 
-    if ( $mech->content =~ m!<div class="erorr">! ) {
+    if ( $mech->content =~ m!<div class="error">! ) {
         $context->log(error => "Login to HatenaRSS failed.");
+        return;
     }
 
     $context->log(info => "Login to HatenaRSS succeed.");
 
-    $mech->get("http://r.hatena.ne.jp/miyagawa/config");
+    $mech->get("http://r.hatena.ne.jp/$username/config");
     $mech->submit_form(form_name => 'opmlexport');
 
     my $opml = $mech->content;
@@ -50,7 +54,7 @@ __END__
 
 =head1 NAME
 
-Plagger::Plugin::Subscrption::HatenaRSS - HatenaRSS Subscription via OPML
+Plagger::Plugin::Subscription::HatenaRSS - HatenaRSS Subscription via OPML
 
 =head1 SYNOPSIS
 
