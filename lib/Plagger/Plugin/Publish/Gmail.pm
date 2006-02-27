@@ -28,7 +28,7 @@ sub notify {
     my $body = $self->templatize($context, $feed);
 
     my $cfg = $self->conf;
-    $context->log(warn => "Sending $subject to $cfg->{mailto}");
+    $context->log(info => "Sending $subject to $cfg->{mailto}");
 
     my $feed_title = $feed->title;
        $feed_title =~ tr/,//d;
@@ -47,6 +47,18 @@ sub notify {
         Type => 'text/html; charset=utf-8',
         Data => encode("utf-8", $body),
     );
+
+    # POP before SMTP
+    if ($cfg->{pop3}) {
+        require Net::POP3;
+        my $pop = Net::POP3->new($cfg->{pop3}->{host});
+        if ($pop->login($cfg->{pop3}->{username}, $cfg->{pop3}->{password})) {
+            $context->log(info => 'POP3 login succeed');
+        } else {
+            $context->log(info => 'POP3 login error');
+        }
+        $pop->quit;
+    }
 
     my $route = $cfg->{mailroute} || { via => 'smtp', host => 'localhost' };
     if ($route->{via} eq 'smtp_tls') {

@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.5.3';
+our $VERSION = '0.5.4';
 
 use 5.8.1;
 use Carp;
@@ -178,7 +178,16 @@ sub run {
 
 sub log {
     my($self, $level, $msg) = @_;
-    my $caller = caller(0);
+
+    # hack to get the original caller as Plugin or Rule
+    my $caller;
+    my $i = 0;
+    while (my $c = caller($i++)) {
+        last if $c !~ /Plugin|Rule/;
+        $caller = $c;
+    }
+    $caller ||= caller(0);
+
     chomp($msg);
     if ($self->should_log($level)) {
         warn "$caller [$level] $msg\n";
@@ -238,10 +247,10 @@ Tatsuhiko Miyagawa E<lt>miyagawa@bulknews.netE<gt>
 
 See I<AUTHORS> file for the name of all the contributors.
 
-=head1 COPYRIGHT
+=head1 LICENSE
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+Except where otherwise noted, Plagger is free software; you can
+redistribute it and/or modify it under the same terms as Perl itself.
 
 =head1 SEE ALSO
 

@@ -2,6 +2,7 @@ package Plagger::Plugin::Aggregator::Simple;
 use strict;
 use base qw( Plagger::Plugin );
 
+use Plagger::UserAgent;
 use URI;
 use XML::Feed;
 use XML::Feed::RSS;
@@ -21,10 +22,26 @@ sub aggregate {
 
     my $url = $args->{feed}->url;
     $context->log(info => "Fetch $url");
-    my $remote = eval { XML::Feed->parse(URI->new($url)) };
+
+    my $agent = Plagger::UserAgent->new;
+    my $response = $agent->get($url);
+
+    unless ($response->is_success) {
+        $context->log(error => "GET $url failed: " . $response->status_line);
+        return;
+    }
+
+    $self->handle_feed($url, \$response->content);
+}
+
+sub handle_feed {
+    my($self, $url, $xml_ref) = @_;
+
+    my $context = Plagger->context;
+    my $remote = eval { XML::Feed->parse($xml_ref) };
 
     unless ($remote) {
-        $context->log(info => "Parsing $url failed. " . XML::Feed->errstr);
+        $context->log(error => "Parsing $url failed. " . XML::Feed->errstr);
         next;
     }
 
@@ -36,6 +53,7 @@ sub aggregate {
     $feed->language($remote->language);
     $feed->author($remote->author);
     $feed->updated($remote->modified);
+    $feed->source_xml($$xml_ref);
 
     if ($remote->format eq 'Atom') {
         $feed->id( $remote->{atom}->id );
@@ -53,7 +71,11 @@ sub aggregate {
         my $entry = Plagger::Entry->new;
         $entry->title($e->title);
         $entry->author($e->author);
-        $entry->tags([ $e->category ]) if $e->category;
+
+        my $category = $e->category;
+           $category = [ $category ] if $category && !ref($category);
+        $entry->tags($category) if $category;
+
         $entry->date( Plagger::Date->rebless($e->issued) )
             if eval { $e->issued };
         $entry->link($e->link);
@@ -68,3 +90,32 @@ sub aggregate {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Plagger::Plugin::Aggregator::Simple - Dumb simple aggregator
+
+=head1 SYNOPSIS
+
+  - module: Aggregator::Simple
+
+=head1 DESCRIPTION
+
+This plugin implements a Plagger dumb aggregator. It crawls
+subscription sequentially and parses XML feeds using L<XML::Feed>
+module.
+
+It can be also used as a base class for custom aggregators. See
+L<Plagger::Plugin::Aggregator::Xango> for example.
+
+=head1 AUTHOR
+
+Tatsuhiko Miyagawa
+
+=head1 SEE ALSO
+
+L<Plagger>, L<XML::Feed>, L<XML::RSS::LibXML>
+
+=cut

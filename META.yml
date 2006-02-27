@@ -12,8 +12,37 @@ no_index:
     - inc
     - t
 recommends: 
+  Cache::FastMmap: 0
+  MIME::Lite: 0
+  Net::DNS: 0
+  Net::Delicious: 0
+  PDF::FromHTML: 0
+  POE: 0
+  POE::Component::Client::DNS: 0
+  POE::Component::Client::HTTP: 0
+  POE::Component::IKC::Client: 0
+  POE::Component::IRC: 0
+  Template::Plugin::JavaScript: 0
+  WWW::Mechanize: 0
+  WWW::Mixi: 0
   WebService::Bloglines: 0.06
+  XML::Feed: 0
+  XML::OPML: 0
+  XMLRPC::Lite: 0
+  Xango: 0
 requires: 
+  Class::Accessor::Fast: 0
+  DateTime: 0.29
+  DateTime::Format::Mail: 0
+  DateTime::Format::Strptime: 0
+  DateTime::Format::W3CDTF: 0
+  Digest::MD5: 0
+  File::Find::Rule: 0
+  LWP: 0
+  Template: 0
+  Template::Provider::Encoding: 0.04
+  Text::Tags: 0
+  UNIVERSAL::require: 0
   YAML: 0.39
   perl: 5.8.1
-version: 0.5.3
+version: 0.5.4

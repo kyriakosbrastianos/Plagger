@@ -2,15 +2,102 @@ use inc::Module::Install;
 
 name('Plagger');
 all_from('lib/Plagger.pm');
-requires(YAML => 0.39);
+
+requires('Class::Accessor::Fast' => 0);
+requires('File::Find::Rule' => 0);
+requires('UNIVERSAL::require' => 0);
+requires('Template' => 0);
+requires('Template::Provider::Encoding' => 0.04);
+requires('YAML' => 0.39);
+requires('Text::Tags' => 0);
+requires('DateTime' => 0.29);
+requires('DateTime::Format::Mail' => 0);
+requires('DateTime::Format::W3CDTF' => 0);
+requires('DateTime::Format::Strptime' => 0);
+requires('Digest::MD5' => 0);
+requires('LWP' => 0);
+
 build_requires(Test::More => 0.42);
 
 features(
-    'Bloglines subscription' => [
+    'Subscription::Bloglines' => [
         -default => 1,
         recommends('WebService::Bloglines', 0.06),
     ],
+    'Subscription::OPML' => [
+        -default => 1,
+        recommends('XML::OPML'),
+    ],
+    'Aggregator::Simple' => [
+        -default => 1,
+        recommends('XML::Feed'),
+    ],
+    'Publish::Gmail' => [
+        -default => 1,
+        recommends('MIME::Lite'),
+    ],
+    'Aggregator::Xango' => [
+        -default => 0,
+        recommends('POE'),
+        recommends('Xango'),
+        recommends('XML::Feed'),
+        recommends('Cache::FastMmap'),
+        recommends('POE::Component::Client::DNS'),
+        recommends('POE::Component::Client::HTTP'),
+    ],
+    'SmartFeed::Mixi' => [
+        -default => 0,
+        recommends('WWW::Mixi'),
+    ],
+    'Publish::PDF' => [
+        -default => 0,
+        recommends('PDF::FromHTML'),
+    ],
+    'Publish::Delicious' => [
+        -default => 0,
+        recommends('Net::Delicious'),
+    ],
+    'Publish::IRC' => [
+        -default => 0,
+        recommends('POE::Component::IRC'),
+        recommends('POE::Component::IKC::Client'),
+    ],
+    'Filter::URLBL' => [
+        -default => 0,
+        recommends('Net::DNS'),
+    ],
+    'Publish::JavaScript' => [
+        -default => 0,
+        recommends('Template::Plugin::JavaScript'),
+    ],
+    'Subscription::HatenaRSS' => [
+        -default => 0,
+        recommends('WWW::Mechanize'),
+    ],
+    'Filter::HatenaBookmarkUsersCount' => [
+        -default => 0,
+        recommends('XMLRPC::Lite'),
+    ],
 );
+
+if ($^O eq 'Darwin') {
+    features(
+        'Publish::Spotlight' => [
+            -default => 1,
+            recommends('Mac::Glue' => 0),
+        ],
+    );
+} elsif ($^O eq 'MSWin32') {
+    features(
+        'Publish::Speech' => [
+            -default => 0,
+            recommends('Win32::OLE' => 0),
+            recommends('Win32::SAPI4' => 0),
+            recommends('Locale::Country' => 0),
+            recommends('Locale::Language' => 0),
+        ],
+    );
+}
 
 auto_include;
 auto_install;
