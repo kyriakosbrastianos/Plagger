@@ -1,3 +1,0 @@
-[%- SET title = feed.title || '(no-title)' -%]
-[% FOREACH entry = feed.entries -%][% feed.title %]: [% entry.title %] - [% entry.link %]
-[% END -%]

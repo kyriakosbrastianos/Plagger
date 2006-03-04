@@ -28,15 +28,15 @@ sub getsubs {
     my($self, $context) = @_;
     my $subscription = $self->{bloglines}->listsubs();
 
-    for my $folder ($subscription->folders) {
-        $self->add_subscription($context, $subscription, $folder->{BloglinesSubId}, $folder->{title});
+    for my $folder ($subscription->folders, 0) {
+        my $subid = $folder ? $folder->{BloglinesSubId} : 0;
+        my $title = $folder ? $folder->{title} : undef;
+        $self->add_subscription($subscription, $subid, $title);
     }
-
-    $self->add_subscription($context, $subscription, 0);
 }
 
 sub add_subscription {
-    my($self, $context, $subscription, $subid, $title) = @_;
+    my($self, $subscription, $subid, $title) = @_;
 
     my @feeds = $subscription->feeds_in_folder($subid);
     for my $source (@feeds) {
@@ -45,7 +45,7 @@ sub add_subscription {
         $feed->link($source->{htmlUrl});
         $feed->url($source->{xmlUrl} );
         $feed->tags([ $title ]) if $title;
-        $context->subscription->add($feed);
+        Plagger->context->subscription->add($feed);
     }
 }
 
@@ -66,7 +66,39 @@ sub notifier {
         my $feed = Plagger::Feed->new;
         $feed->type('bloglines');
         $context->subscription->add($feed);
+
+        if ($self->conf->{fetch_meta}) {
+            $self->{bloglines_meta} = $self->cache->get_callback(
+                'listsubs_meta',
+                sub { $self->fetch_meta($context) },
+                '1 day',
+            );
+        }
     }
+}
+
+sub fetch_meta {
+    my($self, $context) = @_;
+
+    $self->{folders} = {};
+    $context->log(info => "call Bloglines listsubs API to get folder structure");
+
+    my $subscription = $self->{bloglines}->listsubs();
+
+    my $meta;
+    for my $folder ($subscription->folders, 0) {
+        my $subid = ref $folder ? $folder->{BloglinesSubId} : 0;
+        my @feeds = $subscription->feeds_in_folder($subid);
+        for my $feed (@feeds) {
+            # BloglinesSubId is different from bloglines:siteid. Don't use it
+            $meta->{$feed->{htmlUrl}} = {
+                folder => $folder ? $folder->{title} : undef,
+                xmlUrl => $feed->{xmlUrl},
+            };
+        }
+    }
+
+    $meta;
 }
 
 sub sync {
@@ -76,7 +108,7 @@ sub sync {
        $mark_read = 1 unless defined $mark_read;
 
     my @updates = $self->{bloglines}->getitems(0, $mark_read);
-    $context->log(dnfo => scalar(@updates) . " feed(s) updated.");
+    $context->log(info => scalar(@updates) . " feed(s) updated.");
 
     for my $update (@updates) {
         my $source = $update->feed;
@@ -90,6 +122,13 @@ sub sync {
         $feed->language($source->{language});
         $feed->author($source->{webmaster});
         $feed->meta->{bloglines_id} = $source->{bloglines}->{siteid};
+
+        # under fetch_pfolders option, set folder as tags to feeds
+        if (my $meta = $self->{bloglines_meta}->{$feed->link}) {
+            $feed->tags([ $meta->{folder} ]) if $meta->{folder};
+            $feed->url($meta->{xmlUrl});
+        }
+
         $feed->source_xml($update->{_xml});
 
         for my $item ( $update->items ) {
@@ -143,13 +182,25 @@ Your username & password to use with Bloglines API.
 
 =item mark_read
 
-C<mark_read> specifies whether this plugin "marks as read" the items
-you synchronize. Without this option, you will get the duplicated
-updates everytime you run Plagger, until you mark them unread using
-Bloglines browser interface. Defaults to 1.
+C<mark_read> specifies whether this plugin I<marks as read> the items
+you synchronize. With this option set to 0, you will get the
+duplicated updates everytime you run Plagger, until you mark them
+unread using Bloglines browser interface. Defaults to 1.
 
-Setting this to 0 is recommended only for testing, or users who don't
-use Publish::Gmail plugin.
+For people who uses Bloglines browser interface regularly, and use
+Plagger as a tool to synchronize feed updates to mobile devices (like
+PSP or iPod), I'd recommend set this option to 0.
+
+Otherwise, especially for Publish::Gmail plugin users, I recommend set
+to 1, the default.
+
+=item fetch_meta
+
+C<fetch_meta> specifies whether this plugin fetches I<folder>
+strucuture using listsubs API. With this option on, all feeds under
+I<Plagger> folder will have I<Plagger> as its tag.
+
+You can use this tags information using Rules in later phase.
 
 =back
 

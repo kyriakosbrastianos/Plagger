@@ -17,7 +17,7 @@ sub register {
 
 sub load {
     my($self, $context) = @_;
-    $self->{frepa} = Plagger::Plugin::CustomFeed::Frepa::Mechanize->new($self->conf->{livedoor_id}, $self->conf->{password});
+    $self->{frepa} = Plagger::Plugin::CustomFeed::Frepa::Mechanize->new($self);
 
     my $feed = Plagger::Feed->new;
     $feed->type('frepa');
@@ -27,13 +27,12 @@ sub load {
 sub aggregate {
     my($self, $context, $args) = @_;
 
-
     unless ($self->{frepa}->login) {
-	$context->log(error => "Login failed.");
+	$context->log(error => "Login to frepa failed.");
         return;
     }
 
-    $context->log(info => 'Login to frepa succeed.');
+    $context->log(info => 'Login to frepa succeeded.');
 
     my $feed = Plagger::Feed->new;
     $feed->type('frepa');
@@ -58,8 +57,14 @@ sub aggregate {
 
         if ($self->conf->{fetch_body} && !$blocked) {
             $context->log(info => "Fetch body from $msg->{link}");
-            Time::HiRes::sleep( $self->conf->{fetch_body_interval} || 1.5 );
-            my($item) = $self->{frepa}->get_view_diary($msg->{link});
+            my $item = $self->cache->get_callback(
+                "item-$msg->{link}",
+                sub {
+                    Time::HiRes::sleep( $self->conf->{fetch_body_interval} || 1.5 );
+                    $self->{frepa}->get_view_diary($msg->{link});
+                },
+                "1 hour",
+            );
             if ($item) {
                 my $body = decode('euc-jp', $item->{description});
                    $body =~ s!<br>!<br />!g;
@@ -91,12 +96,12 @@ sub aggregate {
 sub fetch_icon {
     my($self, $url) = @_;
 
-    unless ($self->{__icon_cache}->{$url}) {
-        Plagger->context->log(info => "Fetch icon from $url");
-        $self->{__icon_cache}->{$url} = $self->{frepa}->get_top($url);
-    }
-
-    $self->{__icon_cache}->{$url};
+    Plagger->context->log(info => "Fetch icon from $url");
+    $self->cache->get_callback(
+        "icon-$url",
+        sub { $self->{frepa}->get_top($url) },
+        '1 day',
+    );
 }
 
 package Plagger::Plugin::CustomFeed::Frepa::Mechanize;
@@ -106,25 +111,38 @@ use WWW::Mechanize;
 
 sub new {
     my $class = shift;
+    my $plugin = shift;
+
+    my $mech = WWW::Mechanize->new(cookie_jar => $plugin->cache->cookie_jar);
+    $mech->agent_alias( "Windows IE 6" );
 
     bless {
-	mecha       => WWW::Mechanize->new,
-	livedoor_id => shift,
-	password    => shift,
-
-        login_url => 'http://member.livedoor.com/login/?.next=http%3A%2F%2Ffrepa.livedoor.com&.sv=frepa&.nofrepa=1',
+	mecha       => $mech,
+	livedoor_id => $plugin->conf->{livedoor_id},
+	password    => $plugin->conf->{password},
+        start_url => 'http://www.frepa.livedoor.com/',
     }, $class;
 }
 
 sub login {
     my $self = shift;
 
-    my $res = $self->{mecha}->get($self->{login_url});
+    my $res = $self->{mecha}->get($self->{start_url});
     return 0 unless $self->{mecha}->success;
 
-    $self->{mecha}->set_fields(livedoor_id => $self->{livedoor_id}, password => $self->{password});
-    my $res = $self->{mecha}->submit;
-    return 0 unless $self->{mecha}->success;
+    if ($self->{mecha}->content =~ /loginside/) {
+        Plagger->context->log(debug => "cookie not found. logging in");
+        $self->{mecha}->submit_form(
+            fields => {
+                livedoor_id => $self->{livedoor_id},
+                password    => $self->{password},
+                auto_login  => 'on',
+            },
+        );
+        $self->{mecha}->submit;
+        return 0 unless $self->{mecha}->success;
+        return 0 if $self->{mecha}->content =~ /loginside/;
+    }
 
     return 1;
 }
@@ -158,7 +176,7 @@ sub get_view_diary {
     my $self = shift;
     my $link = shift;
 
-    my $item;
+    my $item = {};
     my $res = $self->{mecha}->get($link);
     return $item unless $self->{mecha}->success;
 
@@ -175,7 +193,7 @@ sub get_top {
     my $self = shift;
     my $link = shift;
 
-    my $item;
+    my $item = {};
     my $res = $self->{mecha}->get($link);
     return $item unless $self->{mecha}->success;
 
@@ -229,7 +247,7 @@ RE
 
 sub top_re {
     return <<'RE';
-<a href="http://frepa\.livedoor\.com/.*?/"><img src="(http://img\d+\.ico\.frepa\.livedoor\.com/member_photo/.*?\.(?:jpe?g|JPE?G|gif|GIF))" border="0"></a>
+<a href="http://frepa\.livedoor\.com/.*?/"><img src="(http://img\d+\.ico\.frepa\.livedoor\.com/member_photo/.*?\.(?:jpe?g|JPE?G|gif|GIF|png|PNG))" border="0"></a>
 </small>
 .*?
 <div id="namebody"><small><strong>(.*?)....</strong>

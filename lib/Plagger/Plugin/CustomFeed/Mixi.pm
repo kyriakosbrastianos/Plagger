@@ -19,6 +19,7 @@ sub register {
 sub load {
     my($self, $context) = @_;
     $self->{mixi} = WWW::Mixi->new($self->conf->{email}, $self->conf->{password});
+    $self->{mixi}->cookie_jar($self->cache->cookie_jar);
 
     my $feed = Plagger::Feed->new;
        $feed->type('mixi');
@@ -28,13 +29,27 @@ sub load {
 sub aggregate {
     my($self, $context, $args) = @_;
 
-    my $response = $self->{mixi}->login;
-    unless ($response->is_success) {
-        $context->log(error => "Login failed.");
-        return;
-    }
+    my $start_url = 'http://mixi.jp/new_friend_diary.pl';
+    my $response  = $self->{mixi}->get($start_url);
 
-    $context->log(info => 'Login to mixi succeed.');
+    if ($response->content =~ /action=login\.pl/) {
+        $context->log(debug => "Cookie not foud. Logging in");
+        $response = $self->{mixi}->post("http://mixi.jp/login.pl", {
+            next_url => "/new_friend_diary.pl",
+            email    => $self->conf->{email},
+            password => $self->conf->{password},
+            sticky   => 'on',
+        });
+        if (!$response->is_success || $response->content =~ /action=login\.pl/) {
+            $context->log(error => "Login failed.");
+            return;
+        }
+
+        # meta refresh, ugh!
+        if ($response->content =~ m!"0;url=(.*?)"!) {
+            $response = $self->{mixi}->get($1);
+        }
+    }
 
     my $feed = Plagger::Feed->new;
     $feed->type('mixi');
@@ -43,7 +58,7 @@ sub aggregate {
 
     my $format = DateTime::Format::Strptime->new(pattern => '%Y/%m/%d %H:%M');
 
-    my @msgs = $self->{mixi}->get_new_friend_diary;
+    my @msgs = $self->{mixi}->parse_new_friend_diary($response);
     my $items = $self->conf->{fetch_items} || 20;
 
     my $i = 0;
@@ -59,12 +74,19 @@ sub aggregate {
         $entry->date( Plagger::Date->parse($format, $msg->{time}) );
 
         if ($self->conf->{show_icon} && !$blocked) {
-            # TODO: cache owner_id -> URL
             my $owner_id = ($msg->{link} =~ /owner_id=(\d+)/)[0];
             my $link = "http://mixi.jp/show_friend.pl?id=$owner_id";
             $context->log(info => "Fetch icon from $link");
 
-            my($item) = $self->{mixi}->get_show_friend_outline($link);
+            my $item = $self->cache->get_callback(
+                "outline-$owner_id",
+                sub {
+                    Time::HiRes::sleep( $self->conf->{fetch_body_interval} || 1.5 );
+                    my($item) = $self->{mixi}->get_show_friend_outline($link);
+                    $item;
+                },
+                '12 hours',
+            );
             if ($item && $item->{image} !~ /no_photo/) {
                 # prefer smaller image
                 my $image = $item->{image};
@@ -79,8 +101,15 @@ sub aggregate {
 
         if ($self->conf->{fetch_body} && !$blocked) {
             $context->log(info => "Fetch body from $msg->{link}");
-            Time::HiRes::sleep( $self->conf->{fetch_body_interval} || 1.5 );
-            my($item) = $self->{mixi}->get_view_diary($msg->{link});
+            my $item = $self->cache->get_callback(
+                "item-$msg->{link}",
+                sub {
+                    Time::HiRes::sleep( $self->conf->{fetch_body_interval} || 1.5 );
+                    my($item) = $self->{mixi}->get_view_diary($msg->{link});
+                    $item;
+                },
+                '1 hour',
+            );
             if ($item) {
                 my $body = decode('euc-jp', $item->{description});
                    $body =~ s!\n!<br />!g;

@@ -1,7 +1,7 @@
 package Plagger::Feed;
 use strict;
 
-use base qw( Class::Accessor::Fast );
+use base qw( Plagger::Thing );
 __PACKAGE__->mk_accessors(qw( link url image description language author updated tags meta type source_xml ));
 
 use Digest::MD5 qw(md5_hex);
@@ -57,6 +57,17 @@ sub id {
 sub title_text {
     my $self = shift;
     Plagger::Util::strip_html($self->title);
+}
+
+sub sort_entries {
+    my $self = shift;
+
+    # xxx reverse chron only, using Schwartzian transform
+    my @entries = map { $_->[1] }
+        sort { $b->[0] <=> $a->[0] }
+        map { [ $_->date || '', $_ ] } $self->entries;
+
+    $self->{entries} = \@entries;
 }
 
 1;

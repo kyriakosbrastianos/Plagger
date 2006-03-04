@@ -19,12 +19,13 @@ sub err (@) { print "[err] ", "@_\n" }
 
 my $path = "$FindBin::Bin/../config.yaml";
 GetOptions("--config=s", \$path);
+Getopt::Long::Configure("bundling"); # allows -c
 
 msg "loading configuration $path";
 
 my $config_yaml = YAML::LoadFile($path);
-my $plugin = first { $_->{module} eq 'Publish::IRC' } @{ $config_yaml->{plugins} }
-    or die "Can't find Publish::IRC config in $path";
+my $plugin = first { $_->{module} eq 'Notify::IRC' } @{ $config_yaml->{plugins} }
+    or die "Can't find Notify::IRC config in $path";
 
 my $config = $plugin->{config};
 
