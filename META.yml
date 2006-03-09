@@ -13,10 +13,18 @@ no_index:
     - t
 recommends: 
   Cache::FastMmap: 0
+  Date::Parse: 0
+  DateTime::Format::Epoch: 0
+  Flickr::API: 0
   HTML::ResolveLink: 0.02
+  HTML::Scrubber: 0
+  HTML::Tidy: 0
+  IPC::Run: 0
+  Image::Info: 0
   MIME::Lite: 0
   Net::DNS: 0
   Net::Delicious: 0
+  Net::MovableType: 0
   PDF::FromHTML: 0
   POE: 0
   POE::Component::Client::DNS: 0
@@ -24,16 +32,22 @@ recommends:
   POE::Component::IKC::Client: 0
   POE::Component::IRC: 0
   Template::Plugin::JavaScript: 0
+  Test::Pod: 0
+  Test::Pod::Coverage: 0
+  Text::CSV_PP: 0
+  Text::Hatena: 0
   WWW::Mechanize: 0
   WWW::Mixi: 0
-  WebService::Bloglines: 0.1
-  XML::Atom: 0
+  WebService::Bloglines: 0.11
+  XML::Atom: 0.13
   XML::Feed: 0.08
+  XML::LibXML: 0
+  XML::Liberal: 0.06
   XML::OPML: 0
-  XML::RSS::LibXML: 0.16
-  XML::Simple: 0
+  XML::RSS::LibXML: 0.18
+  XML::RSS::Liberal: 0
   XMLRPC::Lite: 0
-  Xango: 0
+  Xango: 1.02
 requires: 
   Cache::Cache: 1.04
   Class::Accessor::Fast: 0
@@ -49,7 +63,7 @@ requires:
   Template::Provider::Encoding: 0.04
   Text::Tags: 0
   UNIVERSAL::require: 0
-  URI::Fetch: 0.04
+  URI::Fetch: 0.05
   YAML: 0.39
   perl: 5.8.1
-version: 0.5.5
+version: 0.5.6

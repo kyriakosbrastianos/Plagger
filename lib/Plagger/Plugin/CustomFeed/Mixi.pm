@@ -99,7 +99,7 @@ sub aggregate {
             }
         }
 
-        if ($self->conf->{fetch_body} && !$blocked) {
+        if ($self->conf->{fetch_body} && !$blocked && $msg->{link} =~ /view_diary/) {
             $context->log(info => "Fetch body from $msg->{link}");
             my $item = $self->cache->get_callback(
                 "item-$msg->{link}",
@@ -152,7 +152,7 @@ Plagger::Plugin::CustomFeed::Mixi -  Custom feed for mixi.jp
 This plugin fetches your friends diary updates from mixi
 (L<http://mixi.jp/>) and creates a custom feed.
 
-=head CONFIGURATION
+=head1 CONFIGURATION
 
 =over 4
 

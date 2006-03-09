@@ -1,0 +1,42 @@
+global:
+  log:
+    level: debug
+
+plugins:
+  - module: Subscription::Config
+    config:
+      feed:
+        - url: http://bulknews.typepad.com/blog/index.rdf
+        - url: http://engadget.com/rss.xml
+
+  - module: Aggregator::Simple
+  
+  - module: SmartFeed::All
+    rule:
+      module: Fresh
+      duration: 10080 # Seven Days
+    config:
+      title: Planet Plagger
+
+  - module: Publish::Planet
+    rule:
+      expression: $args->{feed}->id eq 'smartfeed:all'
+    config:
+      dir: /tmp/planet
+      skin: default
+      template:
+        members_list: 1
+
+  - module: Publish::Feed
+    rule:
+      expression:  $args->{feed}->id eq 'smartfeed:all'
+    config:
+      dir: /tmp/planet
+
+  - module: Publish::Feed
+    rule:
+      expression:  $args->{feed}->id eq 'smartfeed:all'
+    config:
+      dir: /tmp/planet
+      format: RSS
+

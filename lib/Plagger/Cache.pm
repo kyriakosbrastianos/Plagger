@@ -7,7 +7,7 @@ use UNIVERSAL::require;
 sub new {
     my($class, $conf, $name) = @_;
 
-    mkdir $conf->{base}, 0777 unless -e $conf->{base} && -d_;
+    mkdir $conf->{base}, 0700 unless -e $conf->{base} && -d_;
 
     # Cache default configuration
     $conf->{class}  ||= 'Cache::FileCache';
@@ -28,6 +28,11 @@ sub new {
         base  => $conf->{base},
         cache => $conf->{class}->new($conf->{params}),
     }, $class;
+}
+
+sub path_to {
+    my($self, @path) = @_;
+    File::Spec->catfile($self->{base}, @path);
 }
 
 sub get {
@@ -84,7 +89,7 @@ sub cookie_jar {
     my $file = $ns ? "$ns.dat" : "global.dat";
 
     my $dir = File::Spec->catfile($self->{base}, 'cookies');
-    mkdir $dir, 0755 unless -e $dir && -d _;
+    mkdir $dir, 0700 unless -e $dir && -d _;
 
     return HTTP::Cookies->new(
         file => File::Spec->catfile($dir, $file),

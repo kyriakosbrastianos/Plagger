@@ -3,11 +3,13 @@ use strict;
 use base qw( Plagger::Plugin );
 
 use Plagger::UserAgent;
+use List::Util qw(first);
+use UNIVERSAL::require;
 use URI;
 use XML::Feed;
 use XML::Feed::RSS;
 
-$XML::Feed::RSS::PREFERRED_PARSER = 'XML::RSS::LibXML';
+$XML::Feed::RSS::PREFERRED_PARSER = first { $_->require } qw( XML::RSS::Liberal XML::RSS::LibXML XML::RSS );
 
 sub register {
     my($self, $context) = @_;
@@ -26,8 +28,10 @@ sub aggregate {
     my $agent    = Plagger::UserAgent->new;
     my $response = $agent->fetch($url, $self);
 
-    unless ($response) {
-        $context->log(error => "GET $url failed: " . $response->status);
+    if ($response->is_error) {
+        $context->log(error => "GET $url failed: " .
+                      $response->http_status . " " .
+                      $response->http_response->message);
         return;
     }
 
@@ -40,11 +44,14 @@ sub aggregate {
 sub handle_feed {
     my($self, $url, $xml_ref) = @_;
 
+    my $args = { content => $$xml_ref };
+    Plagger->context->run_hook('aggregator.filter.feed', $args);
+
     my $context = Plagger->context;
-    my $remote = eval { XML::Feed->parse($xml_ref) };
+    my $remote = eval { XML::Feed->parse(\$args->{content}) };
 
     unless ($remote) {
-        $context->log(error => "Parsing $url failed. " . XML::Feed->errstr);
+        $context->log(error => "Parsing $url failed. " . ($@ || XML::Feed->errstr));
         next;
     }
 
@@ -52,7 +59,7 @@ sub handle_feed {
     $feed->title($remote->title);
     $feed->url($url);
     $feed->link($remote->link);
-    $feed->description($remote->tagline);
+    $feed->description($remote->tagline); # xxx should support Atom 1.0
     $feed->language($remote->language);
     $feed->author($remote->author);
     $feed->updated($remote->modified);
@@ -81,11 +88,18 @@ sub handle_feed {
 
         $entry->date( Plagger::Date->rebless($e->issued) )
             if eval { $e->issued };
+
+        # xxx nasty hack. We should remove this once XML::Atom or XML::Feed is fixed
+        if (!$entry->date && $remote->format eq 'Atom' && $e->{entry}->version eq '1.0') {
+            if ( $e->{entry}->published ) {
+                my $dt = XML::Atom::Util::iso2dt( $e->{entry}->published );
+                $entry->date( Plagger::Date->rebless($dt) ) if $dt;
+            }
+        }
+
         $entry->link($e->link);
         $entry->id($e->id);
         $entry->body($e->content->body);
-
-        $entry->{feed_entry} = $e; # xxx for now
 
         $feed->add_entry($entry);
     }

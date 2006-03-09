@@ -34,8 +34,10 @@ sub load_opml {
         $context->log(debug => "Fetch remote OPML from $uri");
 
         my $response = Plagger::UserAgent->new->fetch($uri, $self);
-        unless ($response) {
-            $context->error("Fetch $uri failed: ". $response->status);
+        if ($response->is_error) {
+            $context->log(error => "GET $uri failed: " .
+                          $response->http_status . " " .
+                          $response->http_response->message);
         }
         $xml = $response->content;
     }

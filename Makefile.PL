@@ -3,29 +3,35 @@ use inc::Module::Install;
 name('Plagger');
 all_from('lib/Plagger.pm');
 
-requires('Class::Accessor::Fast' => 0);
-requires('File::Find::Rule' => 0);
-requires('UNIVERSAL::require' => 0);
-requires('Template' => 0);
+requires('Class::Accessor::Fast');
+requires('File::Find::Rule');
+requires('UNIVERSAL::require');
+requires('Template');
 requires('Template::Provider::Encoding' => 0.04);
 requires('YAML' => 0.39);
-requires('Text::Tags' => 0);
+requires('Text::Tags');
 requires('DateTime' => 0.29);
-requires('DateTime::Format::Mail' => 0);
-requires('DateTime::Format::W3CDTF' => 0);
-requires('DateTime::Format::Strptime' => 0);
-requires('Digest::MD5' => 0);
-requires('LWP' => 0);
+requires('DateTime::Format::Mail');
+requires('DateTime::Format::W3CDTF');
+requires('DateTime::Format::Strptime');
+requires('Digest::MD5');
+requires('LWP');
 requires('HTML::Parser' => 3.40);
-requires('URI::Fetch' => 0.04);
+requires('URI::Fetch' => 0.05);
 requires('Cache::Cache' => 1.04);
 
 build_requires(Test::More => 0.42);
 
 features(
+    'POD Testing' => [
+        -default => 0,
+        recommends('Test::Pod'),
+        recommends('Test::Pod::Coverage'),
+    ],
     'Subscription::Bloglines' => [
         -default => 1,
-        recommends('WebService::Bloglines', 0.10),
+        recommends('WebService::Bloglines', 0.11),
+        recommends('XML::Liberal', 0.06),
     ],
     'Subscription::OPML' => [
         -default => 1,
@@ -35,7 +41,8 @@ features(
         -default => 1,
         recommends('XML::Feed', 0.08),
         recommends('XML::Atom'),
-        recommends('XML::RSS::LibXML', 0.16),
+        recommends('XML::RSS::LibXML', 0.18),
+        recommends('XML::RSS::Liberal'),
     ],
     'Publish::Gmail' => [
         -default => 1,
@@ -44,7 +51,7 @@ features(
     'Aggregator::Xango' => [
         -default => 0,
         recommends('POE'),
-        recommends('Xango'),
+        recommends('Xango', 1.02), # avoid prep_request bug
         recommends('XML::Feed', 0.08),
         recommends('Cache::FastMmap'),
         recommends('POE::Component::Client::DNS'),
@@ -62,7 +69,7 @@ features(
         -default => 0,
         recommends('Net::Delicious'),
     ],
-    'Publish::IRC' => [
+    'Notify::IRC' => [
         -default => 0,
         recommends('POE::Component::IRC'),
         recommends('POE::Component::IKC::Client'),
@@ -90,7 +97,7 @@ features(
     'Publish::Feed' => [
         -default => 1,
         recommends('XML::Feed', 0.08),
-        recommends('XML::RSS::LibXML', 0.16),
+        recommends('XML::RSS::LibXML', 0.18),
     ],
     'Filter::ResolveRelativeLink' => [
         -default => 0,
@@ -98,11 +105,50 @@ features(
     ],
     'Filter::BulkfeedsTerms' => [
         -default => 0,
-        recommends('XML::Simple'),
+        recommends('XML::LibXML'),
     ],
     'Publish::HatenaBookmark' => [
         -default => 0,
         recommends('XML::Atom'),
+    ],
+    'Publish::Playlog' => [
+        -default => 0,
+        recommends('XML::Atom', 0.13),
+    ],
+    'Publish::Planet' => [
+        -default => 0,
+        recommends('HTML::Tidy'),
+        recommends('HTML::Scrubber'),
+    ],
+    'Publish::CSV' => [
+        -default => 0,
+        recommends('Text::CSV_PP'),
+    ],
+    'Filter::HatenaFormat' => [
+        -default => 0,
+        recommends('Text::Hatena'),
+    ],
+    'Publish::MT' => [
+        -default => 0,
+        recommends('Net::MovableType'),
+    ],
+    'CustomFeed::FlickrSearch' => [
+        -default => 0,
+        recommends('XML::LibXML'),
+        recommends('Flickr::API'),
+        recommends('DateTime::Format::Epoch'),
+    ],
+    'Filter::ImageInfo' => [
+        -default => 0,
+        recommends('Image::Info'),
+    ],
+    'Filter::Pipe' => [
+        -default => 0,
+        recommends('IPC::Run'),
+    ],
+    'Filter::RSSLiberalDateTime' => [
+        -default => 0,
+        recommends('Date::Parse'),
     ],
 );
 
@@ -113,6 +159,9 @@ if ($^O eq 'Darwin') {
             recommends('Mac::Glue'),
         ],
     );
+
+install_script('bin/spotlight_comment.scpt');
+
 } elsif ($^O eq 'MSWin32') {
     features(
         'Publish::Speech' => [
@@ -131,4 +180,6 @@ if ($^O eq 'Darwin') {
 
 auto_include;
 auto_install;
+install_script('plagger');
+install_script('bin/plagger-ircbot');
 WriteAll;

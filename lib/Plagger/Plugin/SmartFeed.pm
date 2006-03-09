@@ -10,9 +10,9 @@ sub register {
     my($self, $context) = @_;
     $context->register_hook(
         $self,
-        'smartfeed.init'  => \&feed_init,
-        'smartfeed.entry' => \&feed_entry,
-        'smartfeed.finalize' => \&feed_finalize,
+        'smartfeed.init'  => $self->can('feed_init'),
+        'smartfeed.entry' => $self->can('feed_entry'),
+        'smartfeed.finalize' => $self->can('feed_finalize'),
     );
 }
 
@@ -29,7 +29,14 @@ sub feed_init {
 
 sub feed_entry {
     my($self, $context, $args) = @_;
-    $self->{feed}->add_entry($args->{entry}->clone);
+
+    my $entry = $args->{entry}->clone;
+    my $feed  = $args->{feed}->clone;
+       $feed->clear_entries;
+    $entry->source($feed); # xxx is it only valid for SmartFeed?
+    $entry->icon($feed->image) if !$entry->icon && $feed->image;
+
+    $self->{feed}->add_entry($entry);
 }
 
 sub feed_finalize {

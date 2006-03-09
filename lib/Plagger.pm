@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.5.5';
+our $VERSION = '0.5.6';
 
 use 5.8.1;
 use Carp;
@@ -43,6 +43,7 @@ sub bootstrap {
     my $config;
     if (-e $opt{config} && -r _) {
         $config = YAML::LoadFile($opt{config});
+        $self->load_include($config);
         $self->{conf} = $config->{global};
         $self->{conf}->{log}   ||= { level => 'debug' };
     } else {
@@ -51,9 +52,49 @@ sub bootstrap {
 
     local *Plagger::context = sub { $self };
 
+    $self->load_recipes($config);
     $self->load_cache($opt{config});
     $self->load_plugins(@{ $config->{plugins} || [] });
     $self->run();
+}
+
+sub load_include {
+    my($self, $config) = @_;
+
+    return unless $config->{include};
+    for (@{ $config->{include} }) {
+        my $include = YAML::LoadFile($_);
+
+        for my $key (keys %{ $include }) {
+            my $add = $include->{$key};
+            unless ($config->{$key}) {
+                $config->{$key} = $add;
+                next;
+            }
+            if (ref($config->{$key}) eq 'HASH') {
+                next unless ref($add) eq 'HASH';
+                for (keys %{ $include->{$key} }) {
+                    $config->{$key}->{$_} = $include->{$key}->{$_};
+                }
+            } elsif (ref($include->{$key}) eq 'ARRAY') {
+                $add = [ $add ] unless ref($add) eq 'ARRAY';
+                push(@{ $config->{$key} }, @{ $include->{$key} });
+            } elsif ($add) {
+                $config->{$key} = $add;
+            }
+        }
+    }
+}
+
+sub load_recipes {
+    my($self, $config) = @_;
+
+    for (@{ $config->{define_recipes} }) {
+        $self->error("no such recipe to $_") unless $config->{recipe}->{$_};
+        my $plugin = $config->{recipe}->{$_};
+        $plugin = [ $plugin ] unless ref($plugin) eq 'ARRAY';
+        push(@{ $config->{plugins} }, @{ $plugin });
+    }
 }
 
 sub load_cache {
@@ -153,6 +194,7 @@ sub run_hook {
 sub run {
     my $self = shift;
 
+    $self->run_hook('plugin.init');
     $self->run_hook('subscription.load');
 
     for my $type ($self->subscription->types) {
@@ -240,8 +282,17 @@ sub dumper {
 
 sub template {
     my $self = shift;
-    $self->{template} ||= Plagger::Template->new($self);
+    my $plugin = shift || (caller)[0];
+    Plagger::Template->new($self, $plugin->class_id);
 }
+
+sub templatize {
+    my($self, $plugin, $file, $vars) = @_;
+    my $tt = $self->template($plugin);
+    $tt->process($file, $vars, \my $out) or $self->error($tt->error);
+    $out;
+}
+
 
 1;
 __END__
@@ -252,13 +303,27 @@ Plagger - Pluggable RSS/Atom Aggregator
 
 =head1 SYNOPSIS
 
-  % plagger
+  % plagger -c config.yaml
 
 =head1 DESCRIPTION
 
-Plagger is a pluggable RSS/Atom feed aggregator. See
-L<http://plagger.org/> for the latest code, development community and
-bug tracking.
+Plagger is a pluggable RSS/Atom feed aggregator and remixer platform.
+
+Everything is implemented as a small plugin just like qpsmtpd, blosxom
+and perlbal. All you have to do is write a flow of aggregation,
+filters, syndication, publishing and notification plugins in config
+YAML file.
+
+See L<http://plagger.org/> for cookbook examples, quickstart document,
+development community (Mailing List and IRC), subversion repository
+and bug tracking.
+
+=head1 BUGS / DEVELOPMENT
+
+If you find any bug, or you have an idea of nice plugin and want help
+on it, drop us a line to our mailing list
+L<http://groups.google.com/group/plagger-dev> or stop by the IRC
+channel C<#plagger> at irc.freenode.net.
 
 =head1 AUTHOR
 
