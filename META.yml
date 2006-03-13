@@ -22,6 +22,7 @@ recommends:
   IPC::Run: 0
   Image::Info: 0
   MIME::Lite: 0
+  Mail::IMAPClient: 0
   Net::DNS: 0
   Net::Delicious: 0
   Net::MovableType: 0
@@ -35,6 +36,7 @@ recommends:
   Test::Pod: 0
   Test::Pod::Coverage: 0
   Text::CSV_PP: 0
+  Text::Emoticon: 0
   Text::Hatena: 0
   WWW::Mechanize: 0
   WWW::Mixi: 0
@@ -66,4 +68,4 @@ requires:
   URI::Fetch: 0.05
   YAML: 0.39
   perl: 5.8.1
-version: 0.5.6.1
+version: 0.5.7

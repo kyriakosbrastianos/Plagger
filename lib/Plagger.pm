@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.5.6.1';
+our $VERSION = '0.5.7';
 
 use 5.8.1;
 use Carp;
@@ -89,9 +89,9 @@ sub load_include {
 sub load_recipes {
     my($self, $config) = @_;
 
-    for (@{ $config->{define_recipes} }) {
-        $self->error("no such recipe to $_") unless $config->{recipe}->{$_};
-        my $plugin = $config->{recipe}->{$_};
+    for (@{ $config->{recipes} }) {
+        $self->error("no such recipe to $_") unless $config->{define_recipes}->{$_};
+        my $plugin = $config->{define_recipes}->{$_};
         $plugin = [ $plugin ] unless ref($plugin) eq 'ARRAY';
         push(@{ $config->{plugins} }, @{ $plugin });
     }
