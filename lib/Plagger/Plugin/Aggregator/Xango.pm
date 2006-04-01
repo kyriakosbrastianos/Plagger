@@ -1,4 +1,4 @@
-# $Id: /mirror/plagger/trunk/plagger/lib/Plagger/Plugin/Aggregator/Xango.pm 25225 2006-03-05T17:31:45.515672Z miyagawa  $
+# $Id: /mirror/plagger/trunk/plagger/lib/Plagger/Plugin/Aggregator/Xango.pm 1701 2006-04-01T06:52:08.976891Z daisuke  $
 #
 # Copyright (c) 2006 Daisuke Maki <dmaki@cpan.org>
 # All rights reserved.
@@ -8,7 +8,7 @@ use strict;
 use base qw( Plagger::Plugin::Aggregator::Simple );
 use POE;
 use Xango::Broker::Push;
-# sub Xango::DEBUG { 1 } # uncomment to get Xango debug messages
+# BEGIN { sub Xango::DEBUG { 1 } } # uncomment to get Xango debug messages
 
 sub register {
     my($self, $context) = @_;
@@ -16,7 +16,7 @@ sub register {
     my %xango_args = (
         Alias => 'xgbroker',
         HandlerAlias => 'xghandler',
-        HttpCompArgs => [ Agent => "Plagger/$Plagger::VERSION (http://plagger.org/)" ],
+        HttpCompArgs => [ Agent => "Plagger/$Plagger::VERSION (http://plagger.org/)", Timeout => $self->conf->{timeout} || 10 ],
         %{$self->conf->{xango_args} || {}},
     );
     $self->{xango_alias} = $xango_args{Alias};
@@ -24,12 +24,14 @@ sub register {
         Plugin => $self,
         UseCache => exists $self->conf->{use_cache} ?
             $self->conf->{use_cache} : 1,
+        BrokerAlias => $xango_args{Alias},
+        MaxRedirect => $self->conf->{max_redirect} || 3,
     );
     Xango::Broker::Push->spawn(%xango_args);
     $context->register_hook(
         $self,
-        'aggregator.aggregate.feed' => \&aggregate,
-        'aggregator.finalize'       => \&finalize,
+        'customfeed.handle'   => \&aggregate,
+        'aggregator.finalize' => \&finalize,
     );
 }
 
@@ -37,8 +39,9 @@ sub aggregate {
     my($self, $context, $args) = @_;
 
     my $url = $args->{feed}->url;
+    return unless $url =~ m!^https?://!i;
     $context->log(info => "Fetch $url");
-    POE::Kernel->post($self->{xango_alias}, 'enqueue_job', Xango::Job->new(uri => URI->new($url)));
+    POE::Kernel->post($self->{xango_alias}, 'enqueue_job', Xango::Job->new(uri => URI->new($url), redirect => 0));
 }
 
 sub finalize {
@@ -48,6 +51,7 @@ sub finalize {
 
 package Plagger::Plugin::Aggregator::Xango::Crawler;
 use strict;
+use Feed::Find;
 use POE;
 use Storable qw(freeze thaw);
 use XML::Feed;
@@ -58,7 +62,11 @@ sub spawn  {
     my %args  = @_;
 
     POE::Session->create(
-        heap => { PLUGIN => $args{Plugin}, USE_CACHE => $args{UseCache} },
+        heap => {
+            PLUGIN => $args{Plugin}, USE_CACHE => $args{UseCache},
+            BROKER_ALIAS => $args{BrokerAlias},
+            MaxRedirect => $args{MaxRedirect},
+        },
         package_states => [
             $class => [ qw(_start _stop apply_policy prep_request handle_response) ]
         ]
@@ -87,11 +95,33 @@ sub handle_response {
     my $job = $_[ARG0];
     my $plugin = $_[HEAP]->{PLUGIN};
 
+    my $redirect = $job->notes('redirect') + 1;
+    return if $redirect > $_[HEAP]->{MaxRedirect};
+
     my $r = $job->notes('http_response');
     my $url    = $job->uri;
+    if ($r->code =~ /^30[12]$/) {
+        $url = $r->header('location');
+        return unless $url =~ m!^https?://!i;
+        $_[KERNEL]->post($_[HEAP]->{BROKER_ALIAS}, 'enqueue_job', Xango::Job->new(uri => URI->new($url), redirect => $redirect));
+	return;
+    } else {
+        return unless $r->is_success;
 
-    return unless $r->is_success;
-    $plugin->handle_feed($url, $r->content_ref);
+        my $ct = $r->content_type;
+        if ( $Feed::Find::IsFeed{$ct} ) {
+            $plugin->handle_feed($url, $r->content_ref);
+        } else {
+            my @feeds = Feed::Find->find_in_html($r->content_ref, $url);
+            if (@feeds) {
+                $url = $feeds[0];
+                return unless $url =~ m!^https?://!i;
+                $_[KERNEL]->post($_[HEAP]->{BROKER_ALIAS}, 'enqueue_job', Xango::Job->new(uri => URI->new($url), redirect => $redirect));
+            }
+            return;
+        }
+    }
+
     if ($_[HEAP]->{USE_CACHE}) {
         $plugin->cache->set(
             $job->uri,

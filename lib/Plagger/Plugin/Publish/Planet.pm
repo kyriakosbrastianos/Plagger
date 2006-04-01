@@ -3,7 +3,8 @@ use strict;
 use base qw( Plagger::Plugin );
 
 use File::Copy::Recursive qw[rcopy];
-use HTML::Tidy;
+use File::Spec;
+#use HTML::Tidy;
 use HTML::Scrubber;
 
 our $VERSION = '0.01';
@@ -26,7 +27,8 @@ sub add_feed {
     $self->_sanitize_entries(
         $context,
         $feed,
-        HTML::Tidy->new,
+#        HTML::Tidy->new,
+        undef,
         HTML::Scrubber->new(
             rules => [
                 style => 0,
@@ -67,7 +69,7 @@ sub _sanitize_entries {
     my ($self, $context, $feed, $tidy, $scrubber) = @_;
     
     foreach my $entry ($feed->entries) {
-        $entry->{body} = $tidy->clean($entry->{body});
+#        $entry->{body} = $tidy->clean($entry->{body});
         $entry->{body} = $scrubber->scrub($entry->{body});
     }
 }
@@ -86,7 +88,7 @@ sub _apply_skin {
     $context->log(debug => "Assets Directory: " . $self->assets_dir);
     
     rcopy(
-        join('/', $self->assets_dir, $skin_name, 'static'),
+        File::Spec->catfile($self->assets_dir, $skin_name, 'static'),
         $output_dir,
     ) or $context->error("rcopy: $!");
 }

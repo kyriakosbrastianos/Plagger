@@ -7,12 +7,16 @@ use Encode;
 use Time::HiRes;
 use WWW::Mechanize;
 
+sub plugin_id {
+    my $self = shift;
+    $self->class_id . '-' . $self->conf->{username};
+}
+
 sub register {
     my($self, $context) = @_;
     $context->register_hook(
         $self,
         'subscription.load' => \&load,
-        'aggregator.aggregate.yahoo360jp' => \&aggregate,
     );
 }
 
@@ -20,7 +24,7 @@ sub load {
     my($self, $context) = @_;
 
     my $feed = Plagger::Feed->new;
-       $feed->type('yahoo360jp');
+       $feed->aggregator(sub { $self->aggregate(@_) });
     $context->subscription->add($feed);
 }
 

@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.5.7';
+our $VERSION = '0.6.0';
 
 use 5.8.1;
 use Carp;
@@ -38,6 +38,7 @@ sub bootstrap {
         update => Plagger::Update->new,
         subscription => Plagger::Subscription->new,
         plugins_path => {},
+        plugins => [],
     }, $class;
 
     my $config;
@@ -148,6 +149,22 @@ sub extract_package {
     return;
 }
 
+sub is_loaded {
+    my($self, $stuff) = @_;
+
+    my $sub = ref $stuff && ref $stuff eq 'Regexp'
+        ? sub { $_[0] =~ $stuff }
+        : sub { $_[0] eq $stuff };
+
+    for my $plugin (@{ $self->{plugins} }) {
+        my $module = ref $plugin;
+           $module =~ s/^Plagger::Plugin:://;
+        return 1 if $sub->($module);
+    }
+
+    return;
+}
+
 sub load_plugin {
     my($self, $config) = @_;
 
@@ -166,6 +183,8 @@ sub load_plugin {
     my $plugin = $module->new($config);
     $plugin->cache( Plagger::CacheProxy->new($plugin, $self->cache) );
     $plugin->register($self);
+
+    push @{$self->{plugins}}, $plugin;
 }
 
 sub register_hook {
@@ -182,13 +201,22 @@ sub register_hook {
 }
 
 sub run_hook {
-    my($self, $hook, $args) = @_;
+    my($self, $hook, $args, $once) = @_;
     for my $action (@{ $self->{hooks}->{$hook} }) {
         my $plugin = $action->{plugin};
         if ( $plugin->rule->dispatch($plugin, $hook, $args) ) {
-            $action->{callback}->($plugin, $self, $args);
+            my $done = $action->{callback}->($plugin, $self, $args);
+            return 1 if $once && $done;
         }
     }
+
+    # if $once is set, here means not executed = fail
+    return if $once;
+}
+
+sub run_hook_once {
+    my($self, $hook, $args) = @_;
+    $self->run_hook($hook, $args, 1);
 }
 
 sub run {
@@ -197,11 +225,21 @@ sub run {
     $self->run_hook('plugin.init');
     $self->run_hook('subscription.load');
 
-    for my $type ($self->subscription->types) {
-        for my $feed ($self->subscription->feeds_by_type($type)) {
-            $self->run_hook("aggregator.aggregate.$type", { feed => $feed });
+    unless ( $self->is_loaded(qr/^Aggregator::/) ) {
+        $self->load_plugin({ module => 'Aggregator::Simple' });
+    }
+
+    for my $feed ($self->subscription->feeds) {
+        if (my $sub = $feed->aggregator) {
+            $sub->($self, { feed => $feed });
+        } else {
+            my $ok = $self->run_hook_once('customfeed.handle', { feed => $feed });
+            if (!$ok) {
+                Plagger->context->log(error => $feed->url . " is not aggregated by any aggregator");
+            }
         }
     }
+
     $self->run_hook('aggregator.finalize');
 
     for my $feed ($self->update->feeds) {
@@ -218,6 +256,7 @@ sub run {
         for my $entry ($feed->entries) {
             $self->run_hook('smartfeed.entry', { feed => $feed, entry => $entry });
         }
+        $self->run_hook('smartfeed.feed', { feed => $feed });
     }
     $self->run_hook('smartfeed.finalize');
 
@@ -238,16 +277,18 @@ sub run {
 }
 
 sub log {
-    my($self, $level, $msg) = @_;
+    my($self, $level, $msg, %opt) = @_;
 
     # hack to get the original caller as Plugin or Rule
-    my $caller;
-    my $i = 0;
-    while (my $c = caller($i++)) {
-        last if $c !~ /Plugin|Rule/;
-        $caller = $c;
+    my $caller = $opt{caller};
+    unless ($caller) {
+        my $i = 0;
+        while (my $c = caller($i++)) {
+            last if $c !~ /Plugin|Rule/;
+            $caller = $c;
+        }
+        $caller ||= caller(0);
     }
-    $caller ||= caller(0);
 
     chomp($msg);
     if ($self->should_log($level)) {

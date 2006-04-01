@@ -1,18 +1,18 @@
-
 abstract: Pluggable RSS/Atom Aggregator
-author: Tatsuhiko Miyagawa <miyagawa@bulknews.net>
-build_requires: 
+author: 'Tatsuhiko Miyagawa <miyagawa@bulknews.net>'
+build_requires:
   Test::More: 0.42
 distribution_type: module
-generated_by: Module::Install version 0.55
+generated_by: Module::Install version 0.610
 license: perl
 name: Plagger
-no_index: 
-  directory: 
+no_index:
+  directory:
     - inc
     - t
-recommends: 
+recommends:
   Cache::FastMmap: 0
+  DBIx::Class::Schema: 0
   Date::Parse: 0
   DateTime::Format::Epoch: 0
   Flickr::API: 0
@@ -32,12 +32,17 @@ recommends:
   POE::Component::Client::HTTP: 0
   POE::Component::IKC::Client: 0
   POE::Component::IRC: 0
+  Regexp::Common::profanity_us: 0
+  SVN::Client: 0
+  SVN::Core: 0
   Template::Plugin::JavaScript: 0
   Test::Pod: 0
   Test::Pod::Coverage: 0
   Text::CSV_PP: 0
   Text::Emoticon: 0
   Text::Hatena: 0
+  Text::Kakasi: 0
+  URI::Find: 0
   WWW::Mechanize: 0
   WWW::Mixi: 0
   WebService::Bloglines: 0.11
@@ -49,8 +54,8 @@ recommends:
   XML::RSS::LibXML: 0.18
   XML::RSS::Liberal: 0
   XMLRPC::Lite: 0
-  Xango: 1.02
-requires: 
+  Xango: 1.04
+requires:
   Cache::Cache: 1.04
   Class::Accessor::Fast: 0
   DateTime: 0.29
@@ -68,4 +73,4 @@ requires:
   URI::Fetch: 0.05
   YAML: 0.39
   perl: 5.8.1
-version: 0.5.7
+version: 0.6.0

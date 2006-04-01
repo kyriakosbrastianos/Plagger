@@ -2,7 +2,7 @@ package Plagger::Feed;
 use strict;
 
 use base qw( Plagger::Thing );
-__PACKAGE__->mk_accessors(qw( link url image description language author updated tags meta type source_xml ));
+__PACKAGE__->mk_accessors(qw( link url image description language author updated tags meta type source_xml aggregator ));
 
 use Digest::MD5 qw(md5_hex);
 use Plagger::Util;
@@ -80,7 +80,7 @@ sub dedupe_entries {
     my %seen;
     my @entries;
     for my $entry ($self->entries) {
-        push @entries, $entry if !$seen{$entry->id}++;
+        push @entries, $entry if !$seen{$entry->permalink}++;
     }
     $self->{entries} = \@entries;
 }

@@ -5,6 +5,11 @@ use base qw( Plagger::Plugin );
 our $VERSION = '0.10';
 use WebService::Bloglines;
 
+sub plugin_id {
+    my $self = shift;
+    $self->class_id . '-' . $self->conf->{username};
+}
+
 sub register {
     my($self, $context) = @_;
 
@@ -19,7 +24,6 @@ sub register {
         $context->register_hook(
             $self,
             'subscription.load' => \&notifier,
-            'aggregator.aggregate.bloglines' => \&sync,
         );
     }
 }
@@ -65,7 +69,7 @@ sub notifier {
     $context->log(info => "You have $count unread item(s) on Bloglines.");
     if ($count) {
         my $feed = Plagger::Feed->new;
-        $feed->type('bloglines');
+        $feed->aggregator(sub { $self->sync(@_) });
         $context->subscription->add($feed);
 
         if ($self->conf->{fetch_meta}) {
@@ -91,10 +95,10 @@ sub fetch_meta {
         my $subid = ref $folder ? $folder->{BloglinesSubId} : 0;
         my @feeds = $subscription->feeds_in_folder($subid);
         for my $feed (@feeds) {
-            # BloglinesSubId is different from bloglines:siteid. Don't use it
             $meta->{$feed->{htmlUrl}} = {
                 folder => $folder ? $folder->{title} : undef,
                 xmlUrl => $feed->{xmlUrl},
+                subid  => $feed->{BloglinesSubId},
             };
         }
     }
@@ -145,6 +149,7 @@ sub sync {
         if (my $meta = $self->{bloglines_meta}->{$feed->link}) {
             $feed->tags([ $meta->{folder} ]) if $meta->{folder};
             $feed->url($meta->{xmlUrl});
+            $feed->meta->{bloglines_subid} = $meta->{subid};
         }
 
         $feed->source_xml($update->{_xml});
@@ -158,6 +163,7 @@ sub sync {
                 if $item->{dc}->{subject};
             $entry->date( Plagger::Date->parse('Mail', $item->{pubDate}) );
             $entry->link($item->{link});
+            $entry->permalink($item->{guid}) if $item->{guid};
             $entry->feed_link($feed->link);
             $entry->id($item->{guid});
 

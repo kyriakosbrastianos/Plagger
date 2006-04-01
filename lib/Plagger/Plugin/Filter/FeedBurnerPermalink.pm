@@ -6,16 +6,29 @@ sub register {
     my($self, $context) = @_;
     $context->register_hook(
         $self,
+        'aggregator.entry.fixup' => \&fixup,
         'update.entry.fixup' => \&filter,
     );
+}
+
+sub fixup {
+    my($self, $context, $args) = @_;
+
+    # RSS 1.0 & 2.0
+    if (my $orig_link = $args->{orig_entry}->{entry}->{'http://rssnamespace.org/feedburner/ext/1.0'}->{origLink}) {
+        $args->{entry}->permalink($orig_link);
+        $context->log(info => "Permalink rewritten to $orig_link");
+    }
 }
 
 sub filter {
     my($self, $context, $args) = @_;
 
+    # RSS 2.0 SmartFeed
     my $entry = $args->{entry};
-    if ($entry->link =~ m!^http://feeds\.feedburner\.(com|jp)/!) {
+    if ($entry->permalink =~ m!^http://feeds\.feedburner\.(com|jp)/!) {
         $entry->permalink( $entry->id . "" ); # stringify guid
+        $context->log(info => "Permalink rewritten to " . $entry->permalink);
     }
 }
 

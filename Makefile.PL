@@ -51,13 +51,13 @@ features(
     'Aggregator::Xango' => [
         -default => 0,
         recommends('POE'),
-        recommends('Xango', 1.02), # avoid prep_request bug
+        recommends('Xango', 1.04), # protect ourselves from my stupidity
         recommends('XML::Feed', 0.08),
         recommends('Cache::FastMmap'),
         recommends('POE::Component::Client::DNS'),
         recommends('POE::Component::Client::HTTP'),
     ],
-    'SmartFeed::Mixi' => [
+    'CustomFeed::Mixi' => [
         -default => 0,
         recommends('WWW::Mixi'),
     ],
@@ -162,17 +162,48 @@ features(
         -default => 0,
         recommends('Mail::IMAPClient'),
     ],
+    'Filter::Profanity' => [
+	-default => 0,
+	recommends('Regexp::Common::profanity_us'),
+    ],
+    'Subscription::DBI' => [
+	-default => 0,
+	recommends('DBIx::Class::Schema'),
+    ],
+    'CustomFeed::SVNLog' => [
+	-default => 0,
+	recommends('SVN::Core'),
+	recommends('SVN::Client'),
+    ],
+    'Filter::TTP' => [
+	-default => 0,
+	recommends('URI::Find'),
+    ],
+    'Filter::Romanize' => [
+        -default => 0,
+        recommends('Text::Kakasi'),
+    ],
+    'Rule::URLBL' => [
+        -default => 0,
+        recommends('Net::DNS'),
+    ],
 );
 
-if ($^O eq 'Darwin') {
+if ($^O eq 'darwin') {
     features(
         'Publish::Spotlight' => [
             -default => 1,
             recommends('Mac::Glue'),
         ],
     );
+    features(
+        'Publish::Speech' => [
+            -default => 0,
+            recommends('Mac::Speech'),
+        ],
+    );
 
-install_script('bin/spotlight_comment.scpt');
+    install_script('bin/spotlight_comment.scpt');
 
 } elsif ($^O eq 'MSWin32') {
     features(
