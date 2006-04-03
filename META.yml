@@ -15,6 +15,7 @@ recommends:
   DBIx::Class::Schema: 0
   Date::Parse: 0
   DateTime::Format::Epoch: 0
+  Encode::Detect: 0
   Flickr::API: 0
   HTML::ResolveLink: 0.02
   HTML::Scrubber: 0
@@ -65,7 +66,9 @@ requires:
   Digest::MD5: 0
   File::Find::Rule: 0
   HTML::Parser: 3.4
+  HTML::ResolveLink: 0
   LWP: 0
+  Module::Pluggable::Fast: 0
   Template: 0
   Template::Provider::Encoding: 0.04
   Text::Tags: 0
@@ -73,4 +76,4 @@ requires:
   URI::Fetch: 0.05
   YAML: 0.39
   perl: 5.8.1
-version: 0.6.0
+version: 0.6.1

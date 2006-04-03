@@ -19,10 +19,16 @@ requires('LWP');
 requires('HTML::Parser' => 3.40);
 requires('URI::Fetch' => 0.05);
 requires('Cache::Cache' => 1.04);
+requires('Module::Pluggable::Fast');
+requires('HTML::ResolveLink');
 
 build_requires(Test::More => 0.42);
 
 features(
+    'Better Encoding detection' => [
+        -default => 1,
+        recommends('Encode::Detect'),
+    ],
     'POD Testing' => [
         -default => 0,
         recommends('Test::Pod'),

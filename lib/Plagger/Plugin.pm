@@ -4,6 +4,7 @@ use base qw( Class::Accessor::Fast );
 
 __PACKAGE__->mk_accessors( qw(conf rule rule_hook cache) );
 
+use Plagger::Crypt;
 use Plagger::Rule;
 use Plagger::Rules;
 
@@ -25,12 +26,51 @@ sub new {
 
 sub init {
     my $self = shift;
+
     if (my $rule = $self->{rule}) {
         $rule = [ $rule ] if ref($rule) eq 'HASH';
         my $op = $self->{rule_op};
         $self->{rule} = Plagger::Rules->new($op, @$rule);
     } else {
         $self->{rule} = Plagger::Rule->new({ module => 'Always' });
+    }
+
+    $self->walk_config_encryption();
+}
+
+sub walk_config_encryption {
+    my $self = shift;
+    my $conf = $self->conf;
+
+    $self->do_walk($conf);
+}
+
+sub do_walk {
+    my($self, $data) = @_;
+    return unless defined($data) && ref $data;
+
+    if (ref($data) eq 'HASH') {
+        for my $key (keys %$data) {
+            if ($key =~ /password/) {
+                $self->decrypt_config($data, $key);
+            }
+            $self->do_walk($data->{$key});
+        }
+    } elsif (ref($data) eq 'ARRAY') {
+        for my $value (@$data) {
+            $self->do_walk($value);
+        }
+    }
+}
+
+sub decrypt_config {
+    my($self, $data, $key) = @_;
+
+    my $decrypted = Plagger::Crypt->decrypt($data->{$key});
+    if ($decrypted eq $data->{$key}) {
+        Plagger->context->add_rewrite_task($key, $decrypted, Plagger::Crypt->encrypt($decrypted, 'base64'));
+    } else {
+        $data->{$key} = $decrypted;
     }
 }
 

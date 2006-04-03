@@ -1,4 +1,4 @@
-# $Id: /mirror/plagger/trunk/plagger/lib/Plagger/Plugin/Aggregator/Xango.pm 1701 2006-04-01T06:52:08.976891Z daisuke  $
+# $Id: /mirror/plagger/trunk/plagger/lib/Plagger/Plugin/Aggregator/Xango.pm 1729 2006-04-01T19:52:38.515598Z miyagawa  $
 #
 # Copyright (c) 2006 Daisuke Maki <dmaki@cpan.org>
 # All rights reserved.
@@ -9,6 +9,8 @@ use base qw( Plagger::Plugin::Aggregator::Simple );
 use POE;
 use Xango::Broker::Push;
 # BEGIN { sub Xango::DEBUG { 1 } } # uncomment to get Xango debug messages
+
+our $VERSION = '0.1';
 
 sub register {
     my($self, $context) = @_;
