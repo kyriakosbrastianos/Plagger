@@ -61,7 +61,15 @@ sub decode_content {
     # 4) falls back to UTF-8
     $charset ||= 'utf-8';
 
-    return Encode::decode($charset, $content);
+    my $decoded = eval { Encode::decode($charset, $content) };
+
+    if ($@ && $@ =~ /Unknown encoding/) {
+        Plagger->context->log(warn => $@);
+        $charset = $Detector->($content) || 'utf-8';
+        $decoded = Encode::decode($charset, $content);
+    }
+
+    $decoded;
 }
 
 sub extract_title {

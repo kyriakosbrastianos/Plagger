@@ -5,7 +5,7 @@ all_from('lib/Plagger.pm');
 
 requires('Class::Accessor::Fast');
 requires('File::Find::Rule');
-requires('UNIVERSAL::require');
+requires('UNIVERSAL::require' => 0.10);
 requires('Template');
 requires('Template::Provider::Encoding' => 0.04);
 requires('YAML' => 0.39);
@@ -16,11 +16,12 @@ requires('DateTime::Format::W3CDTF');
 requires('DateTime::Format::Strptime');
 requires('Digest::MD5');
 requires('LWP');
-requires('HTML::Parser' => 3.40);
-requires('URI::Fetch' => 0.05);
+requires('HTML::Parser' => 3.48);
+requires('URI::Fetch' => 0.06);
 requires('Cache::Cache' => 1.04);
 requires('Module::Pluggable::Fast');
 requires('HTML::ResolveLink');
+requires('Date::Parse');
 
 build_requires(Test::More => 0.42);
 
@@ -125,6 +126,7 @@ features(
         -default => 0,
         recommends('HTML::Tidy'),
         recommends('HTML::Scrubber'),
+        recommends('File::Copy::Recursive'),
     ],
     'Publish::CSV' => [
         -default => 0,

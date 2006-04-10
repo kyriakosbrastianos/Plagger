@@ -36,7 +36,7 @@ sub load_plugins {
     my $dir = $self->assets_dir;
     my $dh = DirHandle->new($dir) or $context->error("$dir: $!");
     for my $file (grep -f $_->[0] && $_->[0] =~ /\.(?:pl|yaml)$/,
-                  map [ File::Spec->catfile($dir, $_), $_ ], $dh->read) {
+                  map [ File::Spec->catfile($dir, $_), $_ ], sort $dh->read) {
         $self->load_plugin(@$file);
     }
 }
@@ -76,9 +76,10 @@ sub load_plugin_perl {
 
 sub load_plugin_yaml {
     my($self, $file, $base) = @_;
-    my $data = YAML::LoadFile($file);
+    my @data = YAML::LoadFile($file);
 
-    return Plagger::Plugin::Filter::EntryFullText::YAML->new($data, $base);
+    return map { Plagger::Plugin::Filter::EntryFullText::YAML->new($_, $base) }
+        @data;
 }
 
 sub handle {
@@ -111,7 +112,7 @@ sub filter {
     $args->{content} = decode_content($res);
 
     # if the request was redirected, set it as permalink
-    my $base = $res->http_response->base;
+    my $base = $res->http_response->request->uri;
     if ( $base ne $args->{entry}->permalink ) {
         $context->log(info => "rewrite permalink to $base");
         $args->{entry}->permalink($base);
@@ -162,6 +163,7 @@ sub handle { 0 }
 
 package Plagger::Plugin::Filter::EntryFullText::YAML;
 use Encode;
+use List::Util qw(first);
 
 sub new {
     my($class, $data, $base) = @_;
@@ -214,8 +216,13 @@ sub extract {
         my $data;
         @{$data}{@capture} = @match;
 
-        if ($data->{date} && $self->{extract_date_format}) {
-            $data->{date} = Plagger::Date->strptime($self->{extract_date_format}, $data->{date});
+        if ($data->{date}) {
+            if (my $format = $self->{extract_date_format}) {
+                $format = [ $format ] unless ref $format;
+                $data->{date} = (map { Plagger::Date->strptime($_, $data->{date}) } @$format)[0];
+            } else {
+                $data->{date} = Plagger::Date->parse_dwim($data->{date});
+            }
         }
 
         if ($self->{extract_after_hook}) {
@@ -238,17 +245,6 @@ Plagger::Plugin::Filter::EntryFullText - Upgrade your feeds to fulltext class
 =head1 SYNOPSIS
 
   - module: Filter::EntryFullText
-
-  # assets/plugins/filter-entryfulltext/asahi_com.pl
-  sub handle {
-      my($self, $args) = @_;
-      $args->{entry}->link =~ qr!^http://www\.asahi\.com/!;
-  }
-
-  sub extract_body {
-      my($self, $content) = @_;
-      ( $content =~ /<!-- Start of Kiji -->(.*)<!-- End of Kiji -->/s )[0];
-  }
 
 =head1 DESCRIPTION
 
