@@ -78,4 +78,4 @@ requires:
   URI::Fetch: 0.06
   YAML: 0.39
   perl: 5.8.1
-version: 0.6.2
+version: 0.6.3
