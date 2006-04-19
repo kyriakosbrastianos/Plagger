@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.6.3';
+our $VERSION = '0.6.4';
 
 use 5.8.1;
 use Carp;
@@ -186,6 +186,13 @@ sub extract_package {
     }
 
     return;
+}
+
+sub autoload_plugin {
+    my($self, $plugin) = @_;
+    unless ($self->is_loaded($plugin)) {
+        $self->load_plugin({ module => $plugin });
+    }
 }
 
 sub is_loaded {

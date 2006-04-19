@@ -53,7 +53,7 @@ recommends:
   XML::LibXML: 0
   XML::Liberal: 0.06
   XML::OPML: 0
-  XML::RSS::LibXML: 0.18
+  XML::RSS::LibXML: 0.19
   XML::RSS::Liberal: 0
   XMLRPC::Lite: 0
   Xango: 1.04
@@ -78,4 +78,4 @@ requires:
   URI::Fetch: 0.06
   YAML: 0.39
   perl: 5.8.1
-version: 0.6.3
+version: 0.6.4
