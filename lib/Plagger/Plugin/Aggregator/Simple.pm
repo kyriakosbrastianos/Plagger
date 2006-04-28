@@ -30,10 +30,11 @@ sub aggregate {
                        $res->http_response->content_type ||
                        "text/xml";
 
-    if ( $Feed::Find::IsFeed{$content_type} ) {
-        $self->handle_feed($url, \$res->content);
+    my $content = $res->content;
+    if ( $Feed::Find::IsFeed{$content_type} || $self->looks_like_feed(\$content) ) {
+        $self->handle_feed($url, \$content);
     } else {
-        my @feeds = Feed::Find->find_in_html(\$res->content, $url);
+        my @feeds = Feed::Find->find_in_html(\$content, $url);
         if (@feeds) {
             $url = $feeds[0];
             $res = $self->fetch_content($url) or return;
@@ -44,6 +45,11 @@ sub aggregate {
     }
 
     return 1;
+}
+
+sub looks_like_feed {
+    my($self, $content_ref) = @_;
+    $$content_ref =~ m!<rss\s+version="|<rdf:RDF\s+xmlns="http://purl\.org/rss|<feed\s+xmlns="!s;
 }
 
 sub fetch_content {
@@ -84,12 +90,12 @@ sub handle_feed {
     }
 
     my $feed = Plagger::Feed->new;
-    $feed->title($remote->title);
+    $feed->title(_u($remote->title));
     $feed->url($url);
     $feed->link($remote->link);
-    $feed->description($remote->tagline); # xxx should support Atom 1.0
+    $feed->description(_u($remote->tagline)); # xxx should support Atom 1.0
     $feed->language($remote->language);
-    $feed->author($remote->author);
+    $feed->author(_u($remote->author));
     $feed->updated($remote->modified);
     $feed->source_xml($$xml_ref);
 
@@ -107,12 +113,12 @@ sub handle_feed {
 
     for my $e ($remote->entries) {
         my $entry = Plagger::Entry->new;
-        $entry->title($e->title);
-        $entry->author($e->author);
+        $entry->title(_u($e->title));
+        $entry->author(_u($e->author));
 
         my $category = $e->category;
            $category = [ $category ] if $category && !ref($category);
-        $entry->tags($category) if $category;
+        $entry->tags([ map _u($_), @$category ]) if $category;
 
         $entry->date( Plagger::Date->rebless($e->issued) )
             if eval { $e->issued };
@@ -128,7 +134,7 @@ sub handle_feed {
         $entry->link($e->link);
         $entry->feed_link($feed->link);
         $entry->id($e->id);
-        $entry->body($e->content->body || $e->summary->body);
+        $entry->body(_u($e->content->body || $e->summary->body));
 
         my $args = {
             entry      => $entry,
@@ -143,6 +149,12 @@ sub handle_feed {
 
     $context->log(info => "Aggregate $url success: " . $feed->count . " entries.");
     $context->update->add($feed);
+}
+
+sub _u {
+    my $str = shift;
+    Encode::_utf8_on($str);
+    $str;
 }
 
 1;

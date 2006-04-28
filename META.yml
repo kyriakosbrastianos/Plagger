@@ -23,6 +23,7 @@ recommends:
   HTML::Tidy: 0
   IPC::Run: 0
   Image::Info: 0
+  JSON::Syck: 0.1
   MIME::Lite: 0
   Mail::IMAPClient: 0
   Net::DNS: 0
@@ -78,4 +79,4 @@ requires:
   URI::Fetch: 0.06
   YAML: 0.39
   perl: 5.8.1
-version: 0.6.4
+version: 0.6.5
