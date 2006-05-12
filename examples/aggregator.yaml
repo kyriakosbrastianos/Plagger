@@ -1,0 +1,24 @@
+plugins:
+  - module: Subscription::Config
+    disable: 1
+    config:
+      feed:
+        - http://blog.ingy.net/atom.xml
+
+  - module: Subscription::FlatFile
+    config:
+      path: /tmp/subscription.txt
+
+  - module: Filter::Rule
+    rule:
+      module: Fresh
+      mtime:
+        path: /home/miyagawa/tmp/aggregator.mtime
+        autoupdate: 1
+
+  - module: Publish::Gmail
+    config:
+      mailto: miyagawa@bulknews.net
+      mailroute:
+        via: smtp
+        host: monster.bulknews.net:10025

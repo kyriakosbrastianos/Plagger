@@ -53,6 +53,7 @@ features(
     ],
     'Publish::Gmail' => [
         -default => 1,
+        recommends('Mail::Address'),
         recommends('MIME::Lite'),
     ],
     'Aggregator::Xango' => [
@@ -66,7 +67,7 @@ features(
     ],
     'CustomFeed::Mixi' => [
         -default => 0,
-        recommends('WWW::Mixi'),
+        recommends('WWW::Mixi', 0.46),
     ],
     'Publish::PDF' => [
         -default => 0,
@@ -200,11 +201,23 @@ features(
         recommends('JSON::Syck', 0.10),
         recommends('WWW::Mechanize'),
     ],
+    'Search::Estraier' => [
+        -default => 0,
+        recommends('Search::Estraier'),
+    ],
+    'Subscription::XOXO' => [
+        -default => 0,
+        recommends('HTML::TreeBuilder::XPath'),
+    ],
+    'Publish::2chdat' => [
+        -default => 0,
+        recommends('DateTime::Locale'),
+    ],
 );
 
 if ($^O eq 'darwin') {
     features(
-        'Publish::Spotlight' => [
+        'Search::Spotlight' => [
             -default => 1,
             recommends('Mac::Glue'),
         ],

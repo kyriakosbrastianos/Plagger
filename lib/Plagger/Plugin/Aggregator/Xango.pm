@@ -1,4 +1,4 @@
-# $Id: /mirror/plagger/trunk/plagger/lib/Plagger/Plugin/Aggregator/Xango.pm 1729 2006-04-01T19:52:38.515598Z miyagawa  $
+# $Id: /mirror/plagger/trunk/plagger/lib/Plagger/Plugin/Aggregator/Xango.pm 2173 2006-05-05T07:51:03.432950Z miyagawa  $
 #
 # Copyright (c) 2006 Daisuke Maki <dmaki@cpan.org>
 # All rights reserved.
@@ -42,8 +42,16 @@ sub aggregate {
 
     my $url = $args->{feed}->url;
     return unless $url =~ m!^https?://!i;
+
+    $self->{_url2feed}->{$url} = $args->{feed}; # map from url to feed object
+
     $context->log(info => "Fetch $url");
     POE::Kernel->post($self->{xango_alias}, 'enqueue_job', Xango::Job->new(uri => URI->new($url), redirect => 0));
+}
+
+sub handle_feed {
+    my($self, $url, $xml_ref) = @_;
+    $self->SUPER::handle_feed($url, $xml_ref, $self->{_url2feed}->{$url});
 }
 
 sub finalize {
@@ -116,9 +124,13 @@ sub handle_response {
         } else {
             my @feeds = Feed::Find->find_in_html($r->content_ref, $url);
             if (@feeds) {
-                $url = $feeds[0];
-                return unless $url =~ m!^https?://!i;
-                $_[KERNEL]->post($_[HEAP]->{BROKER_ALIAS}, 'enqueue_job', Xango::Job->new(uri => URI->new($url), redirect => $redirect));
+                my $feed_url = $feeds[0];
+                return unless $feed_url =~ m!^https?://!i;
+
+                # OMG we should alias Feed so it can be looked up with $feed_url, too
+                $plugin->{_url2feed}->{$feed_url} = $plugin->{_url2feed}->{$url};
+
+                $_[KERNEL]->post($_[HEAP]->{BROKER_ALIAS}, 'enqueue_job', Xango::Job->new(uri => URI->new($feed_url), redirect => $redirect));
             }
             return;
         }

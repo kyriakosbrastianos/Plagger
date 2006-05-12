@@ -15,16 +15,19 @@ recommends:
   DBIx::Class::Schema: 0
   Date::Parse: 0
   DateTime::Format::Epoch: 0
+  DateTime::Locale: 0
   Encode::Detect: 0
   File::Copy::Recursive: 0
   Flickr::API: 0
   HTML::ResolveLink: 0.02
   HTML::Scrubber: 0
   HTML::Tidy: 0
+  HTML::TreeBuilder::XPath: 0
   IPC::Run: 0
   Image::Info: 0
   JSON::Syck: 0.1
   MIME::Lite: 0
+  Mail::Address: 0
   Mail::IMAPClient: 0
   Net::DNS: 0
   Net::Delicious: 0
@@ -38,6 +41,7 @@ recommends:
   Regexp::Common::profanity_us: 0
   SVN::Client: 0
   SVN::Core: 0
+  Search::Estraier: 0
   Template::Plugin::JavaScript: 0
   Test::Pod: 0
   Test::Pod::Coverage: 0
@@ -47,7 +51,7 @@ recommends:
   Text::Kakasi: 0
   URI::Find: 0
   WWW::Mechanize: 0
-  WWW::Mixi: 0
+  WWW::Mixi: 0.46
   WebService::Bloglines: 0.11
   XML::Atom: 0.13
   XML::Feed: 0.08
@@ -79,4 +83,4 @@ requires:
   URI::Fetch: 0.06
   YAML: 0.39
   perl: 5.8.1
-version: 0.6.5
+version: 0.6.6
