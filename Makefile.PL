@@ -22,6 +22,7 @@ requires('Cache::Cache' => 1.04);
 requires('Module::Pluggable::Fast');
 requires('HTML::ResolveLink');
 requires('Date::Parse');
+requires('MIME::Types', 1.16);
 
 build_requires(Test::More => 0.42);
 
@@ -213,6 +214,10 @@ features(
         -default => 0,
         recommends('DateTime::Locale'),
     ],
+    'Subscription::PlanetINI' => [
+        -default => 0,
+        recommends('Config::INI::Simple'),
+    ],
 );
 
 if ($^O eq 'darwin') {
@@ -246,6 +251,8 @@ if ($^O eq 'darwin') {
         ],
     );
 }
+
+tests 't/*.t t/*/*.t t/*/*/*.t';
 
 auto_include;
 auto_install;

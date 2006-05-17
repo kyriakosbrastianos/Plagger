@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.6.6';
+our $VERSION = '0.7.0';
 
 use 5.8.1;
 use Carp;
@@ -40,14 +40,20 @@ sub bootstrap {
     my $config;
     if (-e $opt{config} && -r _) {
         $config = YAML::LoadFile($opt{config});
-        $self->load_include($config);
-        $self->{conf} = $config->{global};
-        $self->{conf}->{log} ||= { level => 'debug' };
         $self->{config_path} = $opt{config};
+    } elsif (ref($opt{config}) && ref($opt{config}) eq 'SCALAR') {
+        $config = YAML::Load(${$opt{config}});
+    } elsif (ref($opt{config}) && ref($opt{config}) eq 'HASH') {
+        $config = $opt{config};
     } else {
         croak "Plagger->bootstrap: $opt{config}: $!";
     }
 
+    $self->load_include($config);
+    $self->{conf} = $config->{global};
+    $self->{conf}->{log} ||= { level => 'debug' };
+
+    no warnings 'redefine';
     local *Plagger::context = sub { $self };
 
     $self->load_recipes($config);
@@ -64,6 +70,11 @@ sub add_rewrite_task {
 
 sub rewrite_config {
     my $self = shift;
+
+    unless ($self->{config_path}) {
+        $self->log(warn => "config is not loaded from file. Ignoring rewrite tasks.");
+        return;
+    }
 
     open my $fh, $self->{config_path} or $self->error("$self->{config_path}: $!");
     my $data = join '', <$fh>;
@@ -135,7 +146,7 @@ sub load_cache {
     my($self, $config) = @_;
 
     # use config filename as a base directory for cache
-    my $base = ( basename($config) =~ /^(.*?)\.yaml$/ )[0];
+    my $base = ( basename($config) =~ /^(.*?)\.yaml$/ )[0] || 'config';
     my $dir  = $base eq 'config' ? ".plagger" : ".plagger-$base";
 
     $self->{conf}->{cache} ||= {
@@ -158,15 +169,20 @@ sub load_plugins {
                 next if $ent =~ /^\./;
                 $ent = File::Spec->catfile($path, $ent);
                 if (-f $ent && $ent =~ /\.pm$/) {
-                    my $pkg = $self->extract_package($ent)
-                        or die "Can't find package from $ent";
-                    (my $base = $ent) =~ s!^$path/!!;
-                    $self->plugins_path->{$pkg} = $ent;
+                    $self->add_plugin_path($ent);
                 } elsif (-d $ent) {
                     my $lib = File::Spec->catfile($ent, "lib");
                     if (-e $lib && -d _) {
                         $self->log(debug => "Add $lib to INC path");
                         unshift @INC, $lib;
+                    } else {
+                        my $rule = File::Find::Rule->new;
+                           $rule->file;
+                           $rule->name('*.pm');
+                        my @modules = $rule->in($ent);
+                        for my $module (@modules) {
+                            $self->add_plugin_path($module);
+                        }
                     }
                 }
             }
@@ -176,6 +192,15 @@ sub load_plugins {
     for my $plugin (@plugins) {
         $self->load_plugin($plugin) unless $plugin->{disable};
     }
+}
+
+sub add_plugin_path {
+    my($self, $file) = @_;
+
+    my $pkg = $self->extract_package($file)
+        or die "Can't find package from $file";
+    $self->plugins_path->{$pkg} = $file;
+    $self->log(debug => "$file is added as a path to plugin $pkg");
 }
 
 sub extract_package {
@@ -219,7 +244,9 @@ sub load_plugin {
     $module =~ s/^Plagger::Plugin:://;
     $module = "Plagger::Plugin::$module";
 
-    if (my $path = $self->plugins_path->{$module}) {
+    if ($module->isa('Plagger::Plugin')) {
+        $self->log(debug => "$module is loaded elsewhere ... maybe .t script?");
+    } elsif (my $path = $self->plugins_path->{$module}) {
         eval { require $path } or die $@;
     } else {
         $module->require or die $@;

@@ -1,11 +1,13 @@
 package Plagger::Util;
 use strict;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw( strip_html dumbnail decode_content extract_title load_uri );
+our @EXPORT_OK = qw( strip_html dumbnail decode_content extract_title load_uri mime_type_of );
 
 use Encode ();
 use List::Util qw(min);
 use HTML::Entities;
+use MIME::Types;
+use MIME::Type;
 
 our $Detector;
 
@@ -20,6 +22,8 @@ BEGIN {
         };
     }
 }
+
+
 
 sub strip_html {
     my $html = shift;
@@ -126,6 +130,20 @@ sub load_uri {
     }
 
     return $data;
+}
+
+our $mimetypes = MIME::Types->new;
+$mimetypes->addType( MIME::Type->new(type => 'video/flv', extensions => [ 'flv' ]) );
+$mimetypes->addType( MIME::Type->new(type => 'audio/aac', extensions => [ 'm4a', '.aac' ]) );
+
+sub mime_type_of {
+    my $ext = shift;
+
+    if (UNIVERSAL::isa($ext, 'URI')) {
+        $ext = ( $ext->path =~ /\.(\w+)/ )[0];
+    }
+
+    return $mimetypes->mimeTypeOf($ext);
 }
 
 1;

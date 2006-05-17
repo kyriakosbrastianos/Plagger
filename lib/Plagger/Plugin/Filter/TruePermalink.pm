@@ -4,6 +4,7 @@ use base qw( Plagger::Plugin );
 
 use DirHandle;
 use YAML;
+use Plagger::UserAgent;
 use URI;
 use URI::QueryParam;
 
@@ -28,7 +29,12 @@ sub load_plugin {
     my($self, $file, $base) = @_;
 
     Plagger->context->log(debug => "loading $file");
-    push @{$self->{plugins}}, YAML::LoadFile($file);
+    my $data = YAML::LoadFile($file);
+    if (ref($data) eq 'ARRAY') {
+        push @{$self->{redirectors}}, { follow_link => "^(?:" . join("|", @$data) . ")" };
+    } else {
+        push @{$self->{plugins}}, $data;
+    }
 }
 
 sub register {
@@ -42,31 +48,97 @@ sub register {
 sub update {
     my($self, $context, $args) = @_;
 
-    my $orig = $args->{entry}->permalink;
+    $self->rewrite(sub { $args->{entry}->link }, sub { $args->{entry}->link(@_) });
+    for my $enclosure ($args->{entry}->enclosures) {
+        $self->rewrite(sub { $enclosure->url }, sub { $enclosure->url( URI->new(@_) ) });
+    }
+}
+
+sub rewrite {
+    my($self, $getter, $callback) = @_;
+
+    my $loop;
+    while ($self->rewrite_link($getter, $callback)) {
+        if ($loop++ >= 100) {
+            Plagger->error("Possible infinite loop on " . $getter->());
+        }
+    }
+}
+
+sub rewrite_link {
+    my($self, $getter, $callback) = @_;
+
+    my $context = Plagger->context;
+
+    my $link = $getter->();
+    my $orig = $link; # copy
     my $count = 0;
+    my $rewritten;
 
     for my $plugin (@{ $self->{plugins}}) {
         my $match = $plugin->{match} || '.'; # anything
-        next unless $args->{entry}->permalink =~ m/$match/i;
+        next unless $link =~ m/$match/i;
 
         if ($plugin->{rewrite}) {
-            local $_ = $args->{entry}->permalink;
-            $count += eval $plugin->{rewrite};
+            local $_ = $link;
+            my $done = eval $plugin->{rewrite};
             if ($@) {
                 $context->error("$@ in $plugin->{rewrite}");
+            } elsif ($done) {
+                $count += $done;
+                $rewritten = $_;
+                last;
             }
-            $args->{entry}->link($_);
         } elsif ($plugin->{query_param}) {
-            my $link = URI->new($args->{entry}->permalink)->query_param($plugin->{query_param})
-                or $context->error("No query param $plugin->{query_param} in " . $args->{entry}->permalink);
-            $args->{entry}->link($link);
+            my $param = URI->new($link)->query_param($plugin->{query_param})
+                or $context->error("No query param $plugin->{query_param} in " . $link);
             $count++;
+            $rewritten = $param;
+            last;
+        }
+    }
+
+    unless ($count) {
+        for my $red (@{ $self->{redirectors} }) {
+            next unless $red->{follow_link};
+            if ($link =~ /$red->{follow_link}/i) {
+                my $url = $self->follow_redirect($link);
+                if ($url && $url ne $link) {
+                    $count++;
+                    $rewritten = $url;
+                    last;
+                }
+            }
         }
     }
 
     if ($count) {
-        $context->log(info => "Permalink $orig rewritten to " . $args->{entry}->permalink);
+        $callback->($rewritten);
+        $context->log(info => "Link $orig rewritten to $rewritten");
     }
+
+    return $count;
+}
+
+sub follow_redirect {
+    my($self, $link) = @_;
+
+    my $url = $self->cache->get_callback(
+        "redirector:$link",
+        sub {
+            my $ua  = Plagger::UserAgent->new;
+            my $res = $ua->simple_request( HTTP::Request->new(GET => $link) );
+            if ($res->is_redirect) {
+                return $res->header('Location');
+            }
+            return;
+        },
+        '1 day',
+    );
+
+    Plagger->context->log(debug => "Resolving redirection of $link: $url") if $url;
+
+    return $url;
 }
 
 1;
@@ -88,7 +160,9 @@ files. Various permalink fix filters in the past (YahooBlogSearch,
 Namaan, 2chRSSPermalink) can now be writting as a pattern file for
 this plugin.
 
-This plugin rewrites I<link> attribute of C<$entry>, rather than I<permalink>.
+This plugin rewrites I<link> attribute of C<$entry>, rather than
+I<permalink>. If C<$entry> has enclosures, this plugin also tries to
+rewrite url of them.
 
 =head1 PATTERN FILES
 
