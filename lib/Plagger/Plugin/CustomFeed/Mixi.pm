@@ -53,8 +53,16 @@ sub register {
 
 sub load {
     my($self, $context) = @_;
+
+    my $cookie_jar = $self->cookie_jar;
+    if (ref($cookie_jar) ne 'HTTP::Cookies') {
+        # using foreign cookies = don't have to set email/password. Fake them
+        $self->conf->{email}    ||= 'plagger@localhost';
+        $self->conf->{password} ||= 'pl4gg5r';
+    }
+
     $self->{mixi} = WWW::Mixi->new($self->conf->{email}, $self->conf->{password});
-    $self->{mixi}->cookie_jar($self->cache->cookie_jar);
+    $self->{mixi}->cookie_jar($cookie_jar);
 
     my $feed = Plagger::Feed->new;
        $feed->aggregator(sub { $self->aggregate(@_) });
@@ -78,6 +86,11 @@ sub aggregate_feed {
 
     if ($response->content =~ /action=login\.pl/) {
         $context->log(debug => "Cookie not found. Logging in");
+
+        if ($self->conf->{email} eq 'plagger@localhost') {
+            $context->log(error => 'email/password should be set to login');
+        }
+
         $response = $self->{mixi}->post("http://mixi.jp/login.pl", {
             next_url => $next_url,
             email    => $self->conf->{email},
@@ -212,6 +225,16 @@ This plugin fetches your friends diary updates from mixi
 =item email, password
 
 Credential you need to login to mixi.jp.
+
+Note that you don't have to supply email and password if you set
+global cookie_jar in your configuration file and the cookie_jar
+contains a valid login session there, such as:
+
+  global:
+    user_agent:
+      cookies: /path/to/cookies.txt
+
+See L<Plagger::Cookies> for details.
 
 =item fetch_body
 

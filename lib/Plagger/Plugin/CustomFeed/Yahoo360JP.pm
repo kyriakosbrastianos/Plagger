@@ -5,7 +5,7 @@ use base qw( Plagger::Plugin );
 use DateTime::Format::Strptime;
 use Encode;
 use Time::HiRes;
-use WWW::Mechanize;
+use Plagger::Mechanize;
 
 sub plugin_id {
     my $self = shift;
@@ -34,8 +34,7 @@ sub aggregate {
 
     my $start = "http://360.yahoo.co.jp/";
 
-    my $mech = WWW::Mechanize->new(cookie_jar => $self->cache->cookie_jar);
-    $mech->agent_alias( 'Windows IE 6' );
+    my $mech = Plagger::Mechanize->new(cookie_jar => $self->cookie_jar);
     $mech->get($start);
 
     if ($mech->content =~ /mgb_login/) {
@@ -273,6 +272,16 @@ Yahoo! JAPAN 360 and make a custom feed off of them.
 
 Your Yahoo! ID and password to login.
 
+Note that you don't have to supply these variables if you set global
+cookie_jar in your configuration file and the cookie_jar contains a
+valid login session there, such as:
+
+  global:
+    user_agent:
+      cookies: /path/to/cookies.txt
+
+See L<Plagger::Cookies> for details.
+
 =item fetch_body
 
 Specifies whether this plugin fetches body of your friends' blog
@@ -291,6 +300,6 @@ Tatsuhiko Miyagawa
 
 =head1 SEE ALSO
 
-L<Plagger>, L<WWW::Mechanize>, L<Plagger::Plugin::CustomFeed::Mixi>
+L<Plagger>, L<Plagger::Mechanize>, L<Plagger::Plugin::CustomFeed::Mixi>
 
 =cut

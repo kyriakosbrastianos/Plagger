@@ -4,8 +4,7 @@ use base qw( Plagger::Plugin );
 
 use JSON::Syck;
 use URI;
-use URI::QueryParam;
-use WWW::Mechanize;
+use Plagger::Mechanize;
 use Plagger::Util;
 
 sub plugin_id {
@@ -25,7 +24,7 @@ sub register {
 
 sub init_reader {
     my $self = shift;
-    $self->{mech} = WWW::Mechanize->new(cookie_jar => $self->cache->cookie_jar);
+    $self->{mech} = Plagger::Mechanize->new(cookie_jar => $self->cookie_jar);
 
     unless (defined($self->conf->{username}) && defined($self->conf->{password})) {
         Plagger->context->error("username and/or password is missing");
@@ -129,13 +128,23 @@ sub login_reader {
             Plagger->context->error("Failed to login using username & password");
         }
     }
+
+    $self->{mech}->cookie_jar->scan(
+        sub {
+            my($key, $val) = @_[1,2];
+            if ($key =~ /_sid/) {
+                $self->{apikey} = $val;
+                return;
+            }
+        },
+    );
 }
 
 sub _request {
     my($self, $method, $param) = @_;
 
     my $uri = URI->new_abs($method, "http://reader.livedoor.com/");
-    $uri->query_param(%$param) if $param;
+    $uri->query_form(%$param, ApiKey => $self->{apikey});
 
     $self->{mech}->get($uri->as_string);
 
@@ -170,6 +179,16 @@ Reader JSON API.
 =item username, password
 
 Your username & password to use with livedoor Reader.
+
+Note that you don't have to supply username and password if you set
+global cookie_jar in your configuration file and the cookie_jar
+contains a valid login session there, such as:
+
+  global:
+    user_agent:
+      cookies: /path/to/cookies.txt
+
+See L<Plagger::Cookies> for details.
 
 =item mark_read
 

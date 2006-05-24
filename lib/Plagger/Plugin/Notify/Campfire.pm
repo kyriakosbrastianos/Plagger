@@ -42,7 +42,7 @@ sub publish_entry {
 package Plagger::Plugin::Notify::Campfire::Mechanize;
 
 use strict;
-use WWW::Mechanize;
+use Plagger::Mechanize;
 use HTTP::Request::Common;
 use Encode;
 
@@ -50,7 +50,7 @@ sub new {
     my $class  = shift;
     my $plugin = shift;
 
-    my $mech = WWW::Mechanize->new(cookie_jar => $plugin->cache->cookie_jar);
+    my $mech = Plagger::Mechanize->new(cookie_jar => $plugin->cookie_jar);
     $mech->agent_alias("Windows IE 6");
 
     bless {
@@ -142,6 +142,16 @@ Or, to use bot using existent login credentials,
 
 This plugin notifies feed updates to 37 Signals' Campfire
 L<http://www.campfirenow.com/> chat room.
+
+Note that you don't have to supply emali and password if you set
+global cookie_jar in your configuration file and the cookie_jar
+contains a valid login session there, such as:
+
+  global:
+    user_agent:
+      cookies: /path/to/cookies.txt
+
+See L<Plagger::Cookies> for details.
 
 =head1 AUTHOR
 

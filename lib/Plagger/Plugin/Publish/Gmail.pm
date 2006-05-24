@@ -23,6 +23,14 @@ sub register {
     );
 }
 
+sub init {
+    my $self = shift;
+    $self->SUPER::init(@_);
+
+    $self->conf->{mailto} or Plagger->context->error("mailto is required");
+    $self->conf->{mailfrom} ||= 'plagger@localhost';
+}
+
 sub initialize {
     my($self,$context) = @_;
 
@@ -66,6 +74,7 @@ sub notify {
     $msg->attach(
         Type => 'text/html; charset=utf-8',
         Data => encode("utf-8", $body),
+        Encoding => 'quoted-printable',
     );
 
     for my $entry ($args->{feed}->entries) {
