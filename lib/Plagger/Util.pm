@@ -67,7 +67,7 @@ sub decode_content {
 
     # 1) if it is HTTP response, get charset from HTTP Content-Type header
     if ($res) {
-        $charset = ($res->http_response->content_type =~ /charset=([\w\-]+)/)[0];
+        $charset = ($res->content_type =~ /charset=([\w\-]+)/)[0];
     }
 
     # 2) if there's not, try XML encoding
@@ -133,7 +133,7 @@ sub load_uri {
 }
 
 our $mimetypes = MIME::Types->new;
-$mimetypes->addType( MIME::Type->new(type => 'video/flv', extensions => [ 'flv' ]) );
+$mimetypes->addType( MIME::Type->new(type => 'video/x-flv', extensions => [ 'flv' ]) );
 $mimetypes->addType( MIME::Type->new(type => 'audio/aac', extensions => [ 'm4a', '.aac' ]) );
 
 sub mime_type_of {
@@ -143,6 +143,7 @@ sub mime_type_of {
         $ext = ( $ext->path =~ /\.(\w+)/ )[0];
     }
 
+    return unless $ext;
     return $mimetypes->mimeTypeOf($ext);
 }
 

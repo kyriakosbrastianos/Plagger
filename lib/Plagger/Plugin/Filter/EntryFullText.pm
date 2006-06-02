@@ -108,16 +108,19 @@ sub filter {
         return;
     }
 
-    my $res = $self->{ua}->fetch( $args->{entry}->permalink, $self );
-    return if $res->http_response->is_error;
+    # NoNetwork: don't connect for 3 hours
+    my $res = $self->{ua}->fetch( $args->{entry}->permalink, $self, { NoNetwork => 60 * 60 * 3 } );
+    return if !$res->status && $res->is_error;
 
     $args->{content} = decode_content($res);
 
     # if the request was redirected, set it as permalink
-    my $base = $res->http_response->request->uri;
-    if ( $base ne $args->{entry}->permalink ) {
-        $context->log(info => "rewrite permalink to $base");
-        $args->{entry}->permalink($base);
+    if ($res->http_response) {
+        my $base = $res->http_response->request->uri;
+        if ( $base ne $args->{entry}->permalink ) {
+            $context->log(info => "rewrite permalink to $base");
+            $args->{entry}->permalink($base);
+        }
     }
 
     my @plugins = $handler ? ($handler) : @{ $self->{plugins} };
@@ -133,6 +136,7 @@ sub filter {
                 $data->{body} = $resolver->resolve( $data->{body} );
                 $args->{entry}->body($data->{body});
                 $args->{entry}->title($data->{title}) if $data->{title};
+                $args->{entry}->icon({ url => $data->{icon} }) if $data->{icon};
 
                 # extract date using found one, falls back to Last-Modified
                 if ($data->{date}) {
@@ -223,6 +227,11 @@ sub extract {
         my $data;
         @{$data}{@capture} = @match;
 
+        if ($self->{extract_after_hook}) {
+            eval $self->{extract_after_hook};
+            Plagger->context->error($@) if $@;
+        }
+
         if ($data->{date}) {
             if (my $format = $self->{extract_date_format}) {
                 $format = [ $format ] unless ref $format;
@@ -233,11 +242,6 @@ sub extract {
             } else {
                 $data->{date} = Plagger::Date->parse_dwim($data->{date});
             }
-        }
-
-        if ($self->{extract_after_hook}) {
-            eval $self->{extract_after_hook};
-            Plagger->context->error($@) if $@;
         }
 
         return $data;

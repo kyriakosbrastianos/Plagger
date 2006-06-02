@@ -13,6 +13,11 @@ use XML::Feed::RSS;
 
 $XML::Feed::RSS::PREFERRED_PARSER = first { $_->require } qw( XML::RSS::Liberal XML::RSS::LibXML XML::RSS );
 
+eval { require XML::Liberal };
+if (!$@ && $XML::Liberal::VERSION >= 0.10) {
+    XML::Liberal->globally_override('LibXML');
+}
+
 sub register {
     my($self, $context) = @_;
     $context->register_hook(
@@ -87,7 +92,7 @@ sub handle_feed {
 
     unless ($remote) {
         $context->log(error => "Parsing $url failed. " . ($@ || XML::Feed->errstr));
-        next;
+        return;
     }
 
     $feed ||= Plagger::Feed->new;
@@ -152,6 +157,54 @@ sub handle_feed {
                 $enclosure->auto_set_type($link->type);
                 $entry->add_enclosure($enclosure);
             }
+        }
+
+        # TODO: move MediaRSS, Hatena, iTunes and those specific parser to be subclassed
+
+        # Media RSS
+        my $media_ns = "http://search.yahoo.com/mrss";
+        my $media = $e->{entry}->{$media_ns}->{group} || $e->{entry};
+        my $content = $media->{$media_ns}->{content} || [];
+           $content = [ $content ] unless ref $content;
+
+        for my $media_content (@{$content}) {
+            my $enclosure = Plagger::Enclosure->new;
+            $enclosure->url( URI->new($media_content->{url}) );
+            $enclosure->auto_set_type($media_content->{type});
+            $entry->add_enclosure($enclosure);
+        }
+
+        if (my $thumbnail = $media->{$media_ns}->{thumbnail}) {
+            $entry->icon({
+                url   => $thumbnail->{url},
+                width => $thumbnail->{width},
+                height => $thumbnail->{height},
+            });
+        }
+
+        # Hatena Image extensions
+        my $hatena = $e->{entry}->{"http://www.hatena.ne.jp/info/xmlns#"} || {};
+        if ($hatena->{imageurl}) {
+            my $enclosure = Plagger::Enclosure->new;
+            $enclosure->url($hatena->{imageurl});
+            $enclosure->auto_set_type;
+            $entry->add_enclosure($enclosure);
+        }
+
+        if ($hatena->{imageurlsmall}) {
+            $entry->icon({ url   => $hatena->{imageurlsmall} });
+        }
+
+        # Apple photocast feed
+        my $apple = $e->{entry}->{"http://www.apple.com/ilife/wallpapers"} || {};
+        if ($apple->{image}) {
+            my $enclosure = Plagger::Enclosure->new;
+            $enclosure->url( URI->new($apple->{image}) );
+            $enclosure->auto_set_type;
+            $entry->add_enclosure($enclosure);
+        }
+        if ($apple->{thumbnail}) {
+            $entry->icon({ url => $apple->{thumbnail} });
         }
 
         my $args = {

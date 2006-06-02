@@ -2,20 +2,27 @@ package Plagger::Cookies;
 use strict;
 
 use UNIVERSAL::require;
+use Storable;
+
+our %Instances;
 
 sub create {
     my($class, $conf) = @_;
 
-    unless (ref $conf) {
-        $conf = $class->auto_guess($conf);
-        Plagger->context->log(debug => "$conf->{file} => $conf->{type}") if $conf->{type};
+    unless (ref $conf && $conf->{type}) {
+        my $file = ref $conf ? $conf->{file} : $conf;
+        $conf = $class->auto_guess($file);
     }
 
-    my $type = delete $conf->{type};
-    my $impl = $type ? "HTTP::Cookies::$type" : "HTTP::Cookies";
-    $impl->require or Plagger->context->error("Error loading $impl: $@");
+    $Instances{$conf->{file}} ||= do {
+        $conf = Storable::dclone($conf);
+        my $type = delete $conf->{type};
+        my $impl = $type ? "HTTP::Cookies::$type" : "HTTP::Cookies";
+        Plagger->context->log(debug => "$conf->{file} => $impl");
+        $impl->require or Plagger->context->error("Error loading $impl: $@");
 
-    $impl->new(%$conf);
+        $impl->new(%$conf);
+    };
 }
 
 sub auto_guess {
@@ -31,6 +38,9 @@ sub auto_guess {
     }
     elsif ($filename =~ /Cookies\.plist$/i) {
         return { type => 'Safari', file => $filename };
+    }
+    elsif ($filename =~ m!\.w3m/cookie$!) {
+        return { type => 'w3m', file => $filename };
     }
 
     Plagger->context->log(warn => "Don't know type of $filename. Use it as LWP default");

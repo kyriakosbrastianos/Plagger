@@ -8,6 +8,8 @@ use DateTime;
 use DateTime::Format::Mail;
 use Encode;
 use Encode::MIME::Header;
+use HTML::Entities;
+use HTML::Parser;
 use MIME::Lite;
 
 our %TLSConn;
@@ -52,6 +54,14 @@ sub notify {
 
     my $feed = $args->{feed};
     my $subject = $feed->title || '(no-title)';
+
+    my @enclosure_cb;
+    if ($self->conf->{attach_enclosures}) {
+        for my $entry ($args->{feed}->entries) {
+            push @enclosure_cb, $self->prepare_enclosures($entry);
+        }
+    }
+
     my $body = $self->templatize($context, $feed);
 
     my $cfg = $self->conf;
@@ -77,15 +87,8 @@ sub notify {
         Encoding => 'quoted-printable',
     );
 
-    for my $entry ($args->{feed}->entries) {
-        for my $enclosure (grep $_->local_path, $entry->enclosures) {
-            $msg->attach(
-                Type => $enclosure->type,
-                Path => $enclosure->local_path,
-                Filename => $enclosure->filename,
-                Disposition => 'attachment',
-            );
-        }
+    for my $cb (@enclosure_cb) {
+        $cb->($msg);
     }
 
     my $route = $cfg->{mailroute} || { via => 'smtp', host => 'localhost' };
@@ -107,6 +110,69 @@ sub notify {
         my @args  = $route->{host} ? ($route->{host}) : ();
         $msg->send($route->{via}, @args);
     }
+}
+
+sub prepare_enclosures {
+    my($self, $entry) = @_;
+
+    if (grep $_->is_inline, $entry->enclosures) {
+        # replace inline enclosures to cid: entities
+        my %url2enclosure = map { $_->url => $_ } $entry->enclosures;
+
+        my $output;
+        my $p = HTML::Parser->new(api_version => 3);
+        $p->handler( default => sub { $output .= $_[0] }, "text" );
+        $p->handler( start => sub {
+                         my($tag, $attr, $attrseq, $text) = @_;
+                         # TODO: use HTML::Tagset?
+                         if (my $url = $attr->{src}) {
+                             if (my $enclosure = $url2enclosure{$url}) {
+                                 $attr->{src} = "cid:" . $self->enclosure_id($enclosure);
+                             }
+                             $output .= $self->generate_tag($tag, $attr, $attrseq);
+                         } else {
+                             $output .= $text;
+                         }
+                     }, "tag, attr, attrseq, text");
+        $p->parse($entry->body);
+        $p->eof;
+
+        $entry->body($output);
+    }
+
+    return sub {
+        my $msg = shift;
+
+        for my $enclosure (grep $_->local_path, $entry->enclosures) {
+            my %param = (
+                Type => $enclosure->type,
+                Path => $enclosure->local_path,
+                Filename => $enclosure->filename,
+            );
+
+            if ($enclosure->is_inline) {
+                $param{Id} = '<' . $self->enclosure_id($enclosure) . '>';
+                $param{Disposition} = 'inline';
+            } else {
+                $param{Disposition} = 'attachment';
+            }
+
+            $msg->attach(%param);
+        }
+    }
+}
+
+sub generate_tag {
+    my($self, $tag, $attr, $attrseq) = @_;
+
+    return "<$tag " .
+        join(' ', map { $_ eq '/' ? '/' : sprintf qq(%s="%s"), $_, encode_entities($attr->{$_}, q(<>"')) } @$attrseq) .
+        '>';
+}
+
+sub enclosure_id {
+    my($self, $enclosure) = @_;
+    return Digest::MD5::md5_hex($enclosure->url->as_string) . '@Plagger';
 }
 
 sub templatize {
@@ -179,3 +245,62 @@ sub DESTORY {
 sub MIME::Lite::SMTP::TLS::print { shift->datasend(@_) }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Plagger::Plugin::Publish::Gmail - Notify updates to your email account
+
+=head1 SYNOPSIS
+
+  - module: Publish::Gmail
+    config:
+      mailto: example@gmail.com
+      mailfrom: you@example.net
+
+=head1 DESCRIPTION
+
+This plugin creates HTML emails and sends them to your Gmail mailbox.
+
+=head1 CONFIG
+
+=over 4
+
+=item mailto
+
+Your email address to send updatess to. Required.
+
+=item mailfrom
+
+Email address to send email from. Defaults to I<plagger@localhost>.
+
+=item mailroute
+
+Hash to specify how to send emails. Defaults to:
+
+  mailroute:
+    via: smtp
+    host: localhost
+
+the value of I<via> would be either I<smtp>, I<smtp_tls> or I<sendmail>.
+
+  mailroute:
+    via: sendmail
+    command: /usr/sbin/sendmail
+
+=item attach_enclosures
+
+Flag to attach enclosures as Email attachments. Defaults to 0.
+
+=back
+
+=head1 AUTHOR
+
+Tatsuhiko Miyagawa
+
+=head1 SEE ALSO
+
+L<Plagger>, L<MIME::Lite>
+
+=cut

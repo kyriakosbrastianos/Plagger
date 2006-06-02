@@ -24,6 +24,7 @@ recommends:
   HTML::Scrubber: 0
   HTML::Tidy: 0
   HTML::TreeBuilder::XPath: 0
+  HTTP::Cookies::Mozilla: 0
   IPC::Run: 0
   Image::Info: 0
   JSON::Syck: 0.1
@@ -55,12 +56,9 @@ recommends:
   WWW::Mechanize: 0
   WWW::Mixi: 0.46
   WebService::Bloglines: 0.11
-  XML::Atom: 0.13
-  XML::Feed: 0.08
-  XML::LibXML: 0
-  XML::Liberal: 0.06
+  XML::FOAF: 0
+  XML::Liberal: 0.11
   XML::OPML: 0
-  XML::RSS::LibXML: 0.19
   XML::RSS::Liberal: 0
   XMLRPC::Lite: 0
   Xango: 1.04
@@ -84,7 +82,11 @@ requires:
   Text::Tags: 0
   UNIVERSAL::require: 0.1
   URI::Fetch: 0.06
+  XML::Atom: 0.19
+  XML::Feed: 0.08
+  XML::LibXML: 0
+  XML::RSS::LibXML: 0.2
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.1
+version: 0.7.2

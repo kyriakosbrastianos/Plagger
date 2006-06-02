@@ -37,7 +37,14 @@ sub filter {
 
         my $path = File::Spec->catfile($feed_dir, $enclosure->filename);
         $context->log(info => "fetch " . $enclosure->url . " to " . $path);
-        my $res = $ua->mirror($enclosure->url, $path);
+
+        my $request = HTTP::Request->new(GET => $enclosure->url);
+        if ($self->conf->{fake_referer}) {
+            $context->log(debug => "Sending Referer: " . $args->{entry}->permalink);
+            $request->header('Referer' => $args->{entry}->permalink);
+        }
+
+        my $res = $ua->mirror($request, $path);
         $enclosure->local_path($path); # set to be used in later plugins
 
         # Fix length if it's broken
@@ -64,6 +71,22 @@ Plagger::Plugin::Filter::FetchEnclosure - Fetch enclosure(s) in entry
 =head1 DESCRIPTION
 
 This plugin downloads enclosure files set for each entry.
+
+=head1 CONFIG
+
+=over 4
+
+=item dir
+
+Directory to store downloaded enclosures. Required.
+
+=item fake_referer
+
+Flag to set I<Referer> HTTP header when downloading enclosures. Some
+sites would deny downloading images without Referer header. Defaults
+to 0.
+
+=back
 
 =head1 TODO
 
