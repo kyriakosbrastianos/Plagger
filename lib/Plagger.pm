@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.7.2';
+our $VERSION = '0.7.3';
 
 use 5.8.1;
 use Carp;
@@ -86,7 +86,7 @@ sub rewrite_config {
     # xxx this is a quick hack: It should be a YAML roundtrip maybe
     for my $task (@{ $self->{rewrite_tasks} }) {
         my($key, $old_value, $new_value ) = @$task;
-        if ($data =~ s/^(\s+$key:\s+)$old_value[ \t]*$/$1$new_value/m) {
+        if ($data =~ s/^(\s+$key:\s+)\Q$old_value\E[ \t]*$/$1$new_value/m) {
             $count++;
         } else {
             $self->log(error => "$key: $old_value not found in $self->{config_path}");
@@ -95,7 +95,7 @@ sub rewrite_config {
 
     if ($count) {
         File::Copy::copy( $self->{config_path}, $self->{config_path} . ".bak" );
-        open my $fh, ">", $self->{config_path} or $self->error("$self->{config_path}: $!");
+        open my $fh, ">", $self->{config_path} or return $self->log(error => "$self->{config_path}: $!");
         print $fh $data;
         close $fh;
 

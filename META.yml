@@ -11,6 +11,7 @@ no_index:
     - inc
     - t
 recommends: 
+  Audio::Beep: 0
   Cache::FastMmap: 0
   Config::INI::Simple: 0
   DBIx::Class::Schema: 0
@@ -34,6 +35,7 @@ recommends:
   Net::DNS: 0
   Net::Delicious: 0
   Net::MovableType: 0
+  Net::SMTP::TLS: 0
   PDF::FromHTML: 0
   POE: 0
   POE::Component::Client::DNS: 0
@@ -89,4 +91,4 @@ requires:
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.2
+version: 0.7.3

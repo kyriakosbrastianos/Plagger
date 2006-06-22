@@ -65,6 +65,7 @@ features(
         -default => 1,
         recommends('Mail::Address'),
         recommends('MIME::Lite'),
+        recommends('Net::SMTP::TLS'),
     ],
     'Aggregator::Xango' => [
         -default => 0,
@@ -220,6 +221,10 @@ features(
         -default => 0,
         recommends('XML::FOAF'),
     ],
+    'Notify::Beep' => [
+        -default => 0,
+        recommends('Audio::Beep'),
+    ],
 );
 
 if ($^O eq 'darwin') {
@@ -235,6 +240,10 @@ if ($^O eq 'darwin') {
         'Publish::Speech' => [
             -default => 0,
             recommends('Mac::Speech'),
+        ],
+        'Subscription::Bookmarks' => [
+            -default => 0,
+            recommends('Mac::Tie::PList'),
         ],
     );
 
@@ -256,6 +265,11 @@ if ($^O eq 'darwin') {
         'Notify::Eject' => [
             -default => 0,
             recommends('Win32::MCI::Basic'),
+        ],
+        'Subscription::Bookmarks' => [
+            -default => 0,
+            recommends('Win32::IEFavorites', 0.03),
+            recommends('Win32::Locale'),
         ],
     );
 }

@@ -98,7 +98,7 @@ sub filter {
     my($self, $context, $args) = @_;
 
     my $handler = first { $_->handle_force($args) } @{ $self->{plugins} };
-    if ( !$handler && $args->{entry}->body && $args->{entry}->body =~ /<\w+>/ ) {
+    if ( !$handler && $args->{entry}->body && $args->{entry}->body =~ /<\w+>/ && !$self->conf->{force_upgrade} ) {
         $self->log(debug => $args->{entry}->link . " already contains body. Skipped");
         return;
     }
@@ -123,6 +123,11 @@ sub filter {
         }
     }
 
+    # use Last-Modified to populate entry date, even if handler doesn't find one
+    if ($res->last_modified && !$args->{entry}->date) {
+        $args->{entry}->date( Plagger::Date->from_epoch($res->last_modified) );
+    }
+
     my @plugins = $handler ? ($handler) : @{ $self->{plugins} };
 
     for my $plugin (@plugins) {
@@ -138,11 +143,9 @@ sub filter {
                 $args->{entry}->title($data->{title}) if $data->{title};
                 $args->{entry}->icon({ url => $data->{icon} }) if $data->{icon};
 
-                # extract date using found one, falls back to Last-Modified
+                # extract date using found one
                 if ($data->{date}) {
                     $args->{entry}->date($data->{date});
-                } elsif ($res->last_modified) {
-                    $args->{entry}->date( Plagger::Date->from_epoch($res->last_modified) );
                 }
 
                 return 1;
@@ -210,13 +213,13 @@ sub custom_feed_follow_link {
 sub handle_force {
     my($self, $args) = @_;
     $self->{handle_force}
-        ? $args->{entry}->link =~ /$self->{handle_force}/ : 0;
+        ? $args->{entry}->permalink =~ /$self->{handle_force}/ : 0;
 }
 
 sub handle {
     my($self, $args) = @_;
     $self->{handle}
-        ? $args->{entry}->link =~ /$self->{handle}/ : 0;
+        ? $args->{entry}->permalink =~ /$self->{handle}/ : 0;
 }
 
 sub extract {
@@ -279,6 +282,11 @@ Even if fulltext handlers fail to extract content body from HTML, this
 option enables to store the whole document HTML as entry body. It will
 be useful to use with search engines like Gmail and Search:: plugins.
 Defaults to 0.
+
+=item force_upgrade
+
+Even if entry body already contains HTML, this config forces the
+plugin to upgrade the body. Defaults to 0.
 
 =back
 

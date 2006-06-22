@@ -48,17 +48,17 @@ sub register {
 sub update {
     my($self, $context, $args) = @_;
 
-    $self->rewrite(sub { $args->{entry}->link }, sub { $args->{entry}->link(@_) });
+    $self->rewrite(sub { $args->{entry}->permalink }, sub { $args->{entry}->permalink(@_) }, $args);
     for my $enclosure ($args->{entry}->enclosures) {
-        $self->rewrite(sub { $enclosure->url }, sub { $enclosure->url( URI->new(@_) ) });
+        $self->rewrite(sub { $enclosure->url }, sub { $enclosure->url( URI->new(@_) ) }, $args);
     }
 }
 
 sub rewrite {
-    my($self, $getter, $callback) = @_;
+    my($self, $getter, $callback, $args) = @_;
 
     my $loop;
-    while ($self->rewrite_link($getter, $callback)) {
+    while ($self->rewrite_link($getter, $callback, $args)) {
         if ($loop++ >= 100) {
             Plagger->error("Possible infinite loop on " . $getter->());
         }
@@ -66,7 +66,7 @@ sub rewrite {
 }
 
 sub rewrite_link {
-    my($self, $getter, $callback) = @_;
+    my($self, $getter, $callback, $args) = @_;
 
     my $context = Plagger->context;
 
@@ -160,9 +160,9 @@ files. Various permalink fix filters in the past (YahooBlogSearch,
 Namaan, 2chRSSPermalink) can now be writting as a pattern file for
 this plugin.
 
-This plugin rewrites I<link> attribute of C<$entry>, rather than
-I<permalink>. If C<$entry> has enclosures, this plugin also tries to
-rewrite url of them.
+This plugin rewrites I<permalink> attribute of C<$entry>, while
+keeping I<link> as is. If C<$entry> has enclosures, this plugin also
+tries to rewrite url of them.
 
 =head1 PATTERN FILES
 

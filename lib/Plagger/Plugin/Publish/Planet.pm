@@ -29,14 +29,13 @@ sub add_feed {
         $feed,
 #        HTML::Tidy->new,
         undef,
-#        HTML::Scrubber->new(
-#            rules => [
-#                style => 0,
-#                script => 0,
-#            ],
-#            default => [ 1, { '*' => 1, style => 0 } ],
-#        ),
-        undef,
+        HTML::Scrubber->new(
+            rules => [
+                style => 0,
+                script => 0,
+            ],
+            default => [ 1, { '*' => 1, style => 0 } ],
+        ),
     );
 
     $self->_write_index(
@@ -62,6 +61,7 @@ sub templatize {
         %{ $self->conf->{template} },
         feed  => $feed,
         members => [ $context->subscription->feeds ],
+        context => $context,
     }, \my $out) or $context->error($tt->error);
     $out;
 }
@@ -85,13 +85,12 @@ sub _write_index {
 
 sub _apply_skin {
     my ($self, $context, $skin_name, $output_dir) = @_;
-    
     $context->log(debug => "Assets Directory: " . $self->assets_dir);
-    
-    rcopy(
-        File::Spec->catfile($self->assets_dir, $skin_name, 'static'),
-        $output_dir,
-    ) or $context->error("rcopy: $!");
+
+    my $static = File::Spec->catfile($self->assets_dir, $skin_name, 'static');
+    if (-e $static) {
+        rcopy($static, $output_dir) or $context->log(error => "rcopy: $!");
+    }
 }
 
 1;
