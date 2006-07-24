@@ -1,14 +1,16 @@
 package Plagger;
 use strict;
-our $VERSION = '0.7.3';
+our $VERSION = '0.7.4';
 
 use 5.8.1;
 use Carp;
 use Data::Dumper;
+use Encode ();
 use File::Copy;
 use File::Basename;
 use File::Find::Rule;
 use YAML;
+use Storable;
 use UNIVERSAL::require;
 
 use base qw( Class::Accessor::Fast );
@@ -44,7 +46,7 @@ sub bootstrap {
     } elsif (ref($opt{config}) && ref($opt{config}) eq 'SCALAR') {
         $config = YAML::Load(${$opt{config}});
     } elsif (ref($opt{config}) && ref($opt{config}) eq 'HASH') {
-        $config = $opt{config};
+        $config = Storable::dclone($opt{config});
     } else {
         croak "Plagger->bootstrap: $opt{config}: $!";
     }
@@ -52,6 +54,10 @@ sub bootstrap {
     $self->load_include($config);
     $self->{conf} = $config->{global};
     $self->{conf}->{log} ||= { level => 'debug' };
+
+    if (eval { require Term::Encoding }) {
+        $self->{conf}->{log}->{encoding} ||= Term::Encoding::get_encoding();
+    }
 
     no warnings 'redefine';
     local *Plagger::context = sub { $self };
@@ -149,9 +155,8 @@ sub load_cache {
     my $base = ( basename($config) =~ /^(.*?)\.yaml$/ )[0] || 'config';
     my $dir  = $base eq 'config' ? ".plagger" : ".plagger-$base";
 
-    $self->{conf}->{cache} ||= {
-        base => File::Spec->catfile($ENV{HOME}, $dir),
-    };
+    # cache is auto-vivified but that's okay
+    $self->{conf}->{cache}->{base} ||= File::Spec->catfile($ENV{HOME}, $dir);
 
     $self->cache( Plagger::Cache->new($self->{conf}->{cache}) );
 }
@@ -159,30 +164,31 @@ sub load_cache {
 sub load_plugins {
     my($self, @plugins) = @_;
 
-    if ($self->conf->{plugin_path}) {
-        for my $path (@{ $self->conf->{plugin_path} }) {
-            opendir my $dir, $path or do {
-                $self->log(warn => "$path: $!");
-                next;
-            };
-            while (my $ent = readdir $dir) {
-                next if $ent =~ /^\./;
-                $ent = File::Spec->catfile($path, $ent);
-                if (-f $ent && $ent =~ /\.pm$/) {
-                    $self->add_plugin_path($ent);
-                } elsif (-d $ent) {
-                    my $lib = File::Spec->catfile($ent, "lib");
-                    if (-e $lib && -d _) {
-                        $self->log(debug => "Add $lib to INC path");
-                        unshift @INC, $lib;
-                    } else {
-                        my $rule = File::Find::Rule->new;
-                           $rule->file;
-                           $rule->name('*.pm');
-                        my @modules = $rule->in($ent);
-                        for my $module (@modules) {
-                            $self->add_plugin_path($module);
-                        }
+    my $plugin_path = $self->conf->{plugin_path} || [];
+       $plugin_path = [ $plugin_path ] unless ref $plugin_path;
+
+    for my $path (@$plugin_path) {
+        opendir my $dir, $path or do {
+            $self->log(warn => "$path: $!");
+            next;
+        };
+        while (my $ent = readdir $dir) {
+            next if $ent =~ /^\./;
+            $ent = File::Spec->catfile($path, $ent);
+            if (-f $ent && $ent =~ /\.pm$/) {
+                $self->add_plugin_path($ent);
+            } elsif (-d $ent) {
+                my $lib = File::Spec->catfile($ent, "lib");
+                if (-e $lib && -d _) {
+                    $self->log(debug => "Add $lib to INC path");
+                    unshift @INC, $lib;
+                } else {
+                    my $rule = File::Find::Rule->new;
+                    $rule->file;
+                    $rule->name('*.pm');
+                    my @modules = $rule->in($ent);
+                    for my $module (@modules) {
+                        $self->add_plugin_path($module);
                     }
                 }
             }
@@ -365,8 +371,12 @@ sub log {
         $caller ||= caller(0);
     }
 
-    chomp($msg);
     if ($self->should_log($level)) {
+        chomp($msg);
+        if ($self->{log}->{encoding}) {
+            $msg = Encode::decode_utf8($msg) unless utf8::is_utf8($msg);
+            $msg = Encode::encode($self->{log}->{encoding}, $msg);
+        }
         warn "$caller [$level] $msg\n";
     }
 }
@@ -408,7 +418,6 @@ sub templatize {
     $tt->process($file, $vars, \my $out) or $self->error($tt->error);
     $out;
 }
-
 
 1;
 __END__

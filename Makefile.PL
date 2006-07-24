@@ -6,7 +6,7 @@ all_from('lib/Plagger.pm');
 requires('Class::Accessor::Fast');
 requires('File::Find::Rule');
 requires('UNIVERSAL::require' => 0.10);
-requires('Template');
+requires('Template', 2.13);
 requires('Template::Provider::Encoding' => 0.04);
 requires('YAML' => 0.39);
 requires('Text::Tags');
@@ -17,7 +17,7 @@ requires('DateTime::Format::Strptime');
 requires('Digest::MD5');
 requires('LWP');
 requires('HTML::Parser' => 3.48);
-requires('URI::Fetch' => 0.06);
+requires('URI::Fetch' => 0.071);
 requires('Cache::Cache' => 1.04);
 requires('Module::Pluggable::Fast');
 requires('HTML::ResolveLink');
@@ -27,7 +27,9 @@ requires('MIME::Types', 1.16);
 requires('XML::Feed', 0.08);
 requires('XML::LibXML');
 requires('XML::Atom', 0.19);
-requires('XML::RSS::LibXML', 0.20),
+requires('XML::RSS::LibXML', 0.20);
+requires('Encode', 2.10);
+requires('Term::Encoding');
 
 build_requires(Test::More => 0.42);
 
@@ -47,8 +49,12 @@ features(
     ],
     'Liberal XML parsing' => [
         -default => 1,
-        recommends('XML::Liberal', 0.11),
+        recommends('XML::Liberal', 0.13),
         recommends('XML::RSS::Liberal'),
+    ],
+    'XPath support in Subscription and Feed Upgrader' => [
+        -default => 1,
+        recommends('HTML::TreeBuilder::XPath'),
     ],
 );
 
@@ -197,10 +203,6 @@ features(
         -default => 0,
         recommends('Search::Estraier'),
     ],
-    'Subscription::XOXO' => [
-        -default => 0,
-        recommends('HTML::TreeBuilder::XPath'),
-    ],
     'Publish::2chdat' => [
         -default => 0,
         recommends('DateTime::Locale'),
@@ -225,6 +227,11 @@ features(
         -default => 0,
         recommends('Audio::Beep'),
     ],
+    'Publish::SWF' => [
+        -default => 0,
+        recommends('SWF::Builder'),
+        recommends('Text::WrapI18N'),
+    ],
 );
 
 if ($^O eq 'darwin') {
@@ -239,7 +246,11 @@ if ($^O eq 'darwin') {
         ],
         'Publish::Speech' => [
             -default => 0,
-            recommends('Mac::Speech'),
+            recommends('Mac::Carbon'),
+        ],
+        'Notify::Growl' => [
+            -default => 0,
+            recommends('Mac::Growl'),
         ],
         'Subscription::Bookmarks' => [
             -default => 0,
@@ -270,6 +281,14 @@ if ($^O eq 'darwin') {
             -default => 0,
             recommends('Win32::IEFavorites', 0.03),
             recommends('Win32::Locale'),
+        ],
+        'Notify::Balloon' => [
+            -default => 0,
+            recommends('Win32::Console'),
+        ],
+        'Publish::PowerPoint' => [
+            -default => 0,
+            recommends('Win32::PowerPoint'),
         ],
     );
 }

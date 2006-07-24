@@ -36,7 +36,7 @@ POE::Component::IKC::Server->spawn(
 );
 
 msg 'creating irc component';
-POE::Component::IRC->new('bot')
+POE::Component::IRC->spawn( alias => 'bot' )
     or die "Couldn't create IRC POE session: $!";
 
 msg 'creating kernel session';
@@ -44,8 +44,10 @@ POE::Session->create(
     inline_states => {
         _start           => \&bot_start,
         _stop            => \&bot_stop,
+        connect          => \&bot_connect,
         irc_001          => \&bot_connected,
         irc_372          => \&bot_motd,
+        irc_433          => \&bot_nick_taken,
         irc_disconnected => \&bot_reconnect,
         irc_error        => \&bot_reconnect,
         irc_socketerr    => \&bot_reconnect,
@@ -90,7 +92,14 @@ sub bot_start
     $kernel->alias_set('notify_irc');
     $kernel->call( IKC => publish => notify_irc => ['update'] );
     $kernel->post( bot => register => 'all' );
-    $kernel->post(
+    $kernel->yield('connect');
+}
+
+sub bot_connect
+{
+    my ( $kernel, $heap ) = @_[ KERNEL, HEAP ];
+    msg "attempting to connect to server";
+    $kernel->post( 
         bot => connect => {
             Nick     => $config->{nickname},
             Ircname  => $config->{ircname} || $config->{nickname},
@@ -140,4 +149,17 @@ sub bot_reconnect
     err "reconnect: " . $_[ARG0];
     $kernel->delay( autoping => undef );
     $kernel->delay( connect  => 60 );
+}
+
+sub bot_nick_taken
+{
+    my ( $kernel, $heap ) = @_[ KERNEL, HEAP ];
+    if ($config->{nick} !~ /\d$/) {
+        $config->{nick} .= 0;
+    } else {
+        substr( $config->{nick}, -1, 1 )++;
+    }
+    err 'nick taken, trying new nick ' . $config->{nick};
+    $kernel->post( bot => nick => $config->{nick} );
+    $heap->{seen_traffic} = 1;
 }

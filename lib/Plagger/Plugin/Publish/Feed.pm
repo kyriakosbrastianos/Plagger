@@ -10,9 +10,7 @@ use XML::Feed::Entry;
 use XML::RSS::LibXML;
 use File::Spec;
 
-# xxx ugh
-$XML::Feed::RSS::PREFERRED_PARSER =
-    $XML::RSS::LibXML::VERSION >= 0.16 ? "XML::RSS::LibXML" : "XML::RSS";
+$XML::Feed::RSS::PREFERRED_PARSER = "XML::RSS::LibXML";
 
 sub register {
     my($self, $context) = @_;
@@ -59,14 +57,15 @@ sub publish_feed {
         $entry->author($e->author);
 
         if ($e->has_enclosure) {
-            # RSS 2.0 by spec doesn't allow multiple enclosures
-            my @enclosures = $feed_format eq 'RSS' ? ($e->enclosures->[0]) : $e->enclosures;
-            for my $enclosure (grep { defined $_->url && !$_->is_inline } @enclosures) {
+            for my $enclosure (grep { defined $_->url && !$_->is_inline } $e->enclosures) {
                 $entry->add_enclosure({
                     url    => $enclosure->url,
                     length => $enclosure->length,
                     type   => $enclosure->type,
                 });
+
+                # RSS 2.0 by spec doesn't allow multiple enclosures
+                last if $feed_format eq 'RSS';
             }
         }
 

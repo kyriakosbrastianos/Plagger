@@ -46,6 +46,7 @@ recommends:
   Regexp::Common::profanity_us: 0
   SVN::Client: 0
   SVN::Core: 0
+  SWF::Builder: 0
   Search::Estraier: 0
   Template::Plugin::JavaScript: 0
   Test::Pod: 0
@@ -54,12 +55,13 @@ recommends:
   Text::Emoticon: 0
   Text::Hatena: 0
   Text::Kakasi: 0
+  Text::WrapI18N: 0
   URI::Find: 0
   WWW::Mechanize: 0
   WWW::Mixi: 0.46
   WebService::Bloglines: 0.11
   XML::FOAF: 0
-  XML::Liberal: 0.11
+  XML::Liberal: 0.13
   XML::OPML: 0
   XML::RSS::Liberal: 0
   XMLRPC::Lite: 0
@@ -73,17 +75,19 @@ requires:
   DateTime::Format::Strptime: 0
   DateTime::Format::W3CDTF: 0
   Digest::MD5: 0
+  Encode: 2.1
   File::Find::Rule: 0
   HTML::Parser: 3.48
   HTML::ResolveLink: 0
   LWP: 0
   MIME::Types: 1.16
   Module::Pluggable::Fast: 0
-  Template: 0
+  Template: 2.13
   Template::Provider::Encoding: 0.04
+  Term::Encoding: 0
   Text::Tags: 0
   UNIVERSAL::require: 0.1
-  URI::Fetch: 0.06
+  URI::Fetch: 0.071
   XML::Atom: 0.19
   XML::Feed: 0.08
   XML::LibXML: 0
@@ -91,4 +95,4 @@ requires:
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.3
+version: 0.7.4

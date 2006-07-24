@@ -13,11 +13,6 @@ use XML::Feed::RSS;
 
 $XML::Feed::RSS::PREFERRED_PARSER = first { $_->require } qw( XML::RSS::Liberal XML::RSS::LibXML XML::RSS );
 
-eval { require XML::Liberal };
-if (!$@ && $XML::Liberal::VERSION >= 0.10) {
-    XML::Liberal->globally_override('LibXML');
-}
-
 sub register {
     my($self, $context) = @_;
     $context->register_hook(
@@ -35,6 +30,8 @@ sub aggregate {
     my $content_type = eval { $res->content_type } ||
                        $res->http_response->content_type ||
                        "text/xml";
+
+    $content_type =~ s/;.*$//; # strip charset= cruft
 
     my $content = $res->content;
     if ( $Feed::Find::IsFeed{$content_type} || $self->looks_like_feed(\$content) ) {
@@ -55,7 +52,7 @@ sub aggregate {
 
 sub looks_like_feed {
     my($self, $content_ref) = @_;
-    $$content_ref =~ m!<rss\s+version="|<rdf:RDF\s+xmlns="http://purl\.org/rss|<feed\s+xmlns="!s;
+    $$content_ref =~ m!<rss |<rdf:RDF\s+xmlns="http://purl\.org/rss|<feed\s+xmlns="!s;
 }
 
 sub fetch_content {
@@ -87,6 +84,14 @@ sub handle_feed {
 
     my $args = { content => $$xml_ref };
     $context->run_hook('aggregator.filter.feed', $args);
+
+    # override XML::LibXML with Liberal
+    my $sweeper; # XML::Liberal >= 0.13
+
+    eval { require XML::Liberal };
+    if (!$@ && $XML::Liberal::VERSION >= 0.10) {
+        $sweeper = XML::Liberal->globally_override('LibXML');
+    }
 
     my $remote = eval { XML::Feed->parse(\$args->{content}) };
 
@@ -143,12 +148,17 @@ sub handle_feed {
         $entry->body(_u($e->content->body || $e->summary->body));
 
         # enclosure support, to be added to XML::Feed
-        if ($remote->format =~ /^RSS / && $e->{entry}->{enclosure}) {
-            my $enclosure = Plagger::Enclosure->new;
-            $enclosure->url( URI->new($e->{entry}->{enclosure}->{url}) );
-            $enclosure->length($e->{entry}->{enclosure}->{length});
-            $enclosure->auto_set_type($e->{entry}->{enclosure}->{type});
-            $entry->add_enclosure($enclosure);
+        if ($remote->format =~ /^RSS / and my $encls = $e->{entry}->{enclosure}) {
+            # some RSS feeds contain multiple enclosures, and we support them
+            $encls = [ $encls ] unless ref $encls eq 'ARRAY';
+
+            for my $encl (@$encls) {
+                my $enclosure = Plagger::Enclosure->new;
+                $enclosure->url( URI->new($encl->{url}) );
+                $enclosure->length($encl->{length});
+                $enclosure->auto_set_type($encl->{type});
+                $entry->add_enclosure($enclosure);
+            }
         } elsif ($remote->format eq 'Atom') {
             for my $link ( grep { $_->rel eq 'enclosure' } $e->{entry}->link ) {
                 my $enclosure = Plagger::Enclosure->new;
