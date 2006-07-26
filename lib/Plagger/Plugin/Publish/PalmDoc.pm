@@ -1,5 +1,5 @@
 # Plagger::Plugin::Publish::PalmDoc
-# $Id: /mirror/plagger/trunk/plagger/lib/Plagger/Plugin/Publish/PalmDoc.pm 2351 2006-05-24T06:41:18.269177Z cheebow  $
+# $Id: /mirror/plagger/trunk/plagger/lib/Plagger/Plugin/Publish/PalmDoc.pm 3222 2006-07-26T18:11:42.718990Z miyagawa  $
 package Plagger::Plugin::Publish::PalmDoc;
 use strict;
 use base qw( Plagger::Plugin );
@@ -50,7 +50,7 @@ sub finalize {
 sub makeEntryText {
     my($self, $entry, $context) = @_;
     
-    my $entry_text = $context->templatize($self, 'palmdoc.tt', {
+    my $entry_text = $self->templatize('palmdoc.tt', {
         entry => $entry,
         now   => Plagger::Date->now,
     });
