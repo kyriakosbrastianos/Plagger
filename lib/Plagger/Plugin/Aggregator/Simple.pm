@@ -53,7 +53,7 @@ sub aggregate {
 
 sub looks_like_feed {
     my($self, $content_ref) = @_;
-    $$content_ref =~ m!<rss |<rdf:RDF\s+xmlns="http://purl\.org/rss|<feed\s+xmlns="!s;
+    $$content_ref =~ m!<rss |<rdf:RDF\s+.*?xmlns="http://purl\.org/rss|<feed\s+xmlns="!s;
 }
 
 sub fetch_content {
@@ -62,7 +62,8 @@ sub fetch_content {
     my $context = Plagger->context;
     $context->log(info => "Fetch $url");
 
-    my $agent    = Plagger::UserAgent->new;
+    my $agent = Plagger::UserAgent->new;
+       $agent->parse_head(0);
     my $response = $agent->fetch($url, $self);
 
     if ($response->is_error) {
@@ -102,7 +103,7 @@ sub handle_feed {
     }
 
     $feed ||= Plagger::Feed->new;
-    $feed->title(_u($remote->title));
+    $feed->title(_u($remote->title)) unless defined $feed->title;
     $feed->url($url);
     $feed->link($remote->link);
     $feed->description(_u($remote->tagline)); # xxx should support Atom 1.0

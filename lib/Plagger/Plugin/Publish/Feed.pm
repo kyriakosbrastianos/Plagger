@@ -50,6 +50,11 @@ sub publish_feed {
     $feed->link($f->link);
     $feed->modified(Plagger::Date->now);
     $feed->generator("Plagger/$Plagger::VERSION");
+    $feed->description($f->description || '');
+
+    if ($feed_format eq 'Atom') {
+        $feed->{atom}->id("tag:plagger.org,2006:" . $f->id);
+    }
 
     # add entry
     for my $e ($f->entries) {
@@ -57,11 +62,29 @@ sub publish_feed {
         $entry->title($e->title);
         $entry->link($e->link);
         $entry->summary($e->body_text) if defined $e->body;
-        $entry->content($e->body)
-            if $self->conf->{full_content} && defined $e->body;
+
+        # hack to bypass XML::Feed Atom 0.3 crufts (type="text/html")
+        if ($self->conf->{full_content} && defined $e->body) {
+            if ($feed_format eq 'RSS') {
+                $entry->content($e->body);
+            } else {
+                $entry->{entry}->content($e->body);
+            }
+        }
+
         $entry->category(join(' ', @{$e->tags}));
-        $entry->issued($e->date) if $e->date;
-        $entry->author($e->author);
+        $entry->issued($e->date)   if $e->date;
+        $entry->modified($e->date) if $e->date;
+
+        if ($feed_format eq 'RSS') {
+            my $author = 'nobody@example.com';
+            $author .= ' (' . $e->author . ')' if $e->author;
+            $entry->author($author);
+        } elsif ($e->author) {
+            $entry->author($e->author);
+        }
+
+        $entry->id("tag:plagger.org,2006:" . $e->id);
 
         if ($e->has_enclosure) {
             for my $enclosure (grep { defined $_->url && !$_->is_inline } $e->enclosures) {

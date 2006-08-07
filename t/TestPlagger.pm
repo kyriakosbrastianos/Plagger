@@ -1,8 +1,23 @@
 package t::TestPlagger;
+use FindBin;
+use File::Basename;
+use File::Spec;
 use Test::Base -Base;
 use Plagger;
 
-our @EXPORT = qw(test_requires test_requires_network run_eval_expected slurp_file file_contains file_doesnt_contain);
+our @EXPORT = qw(test_requires test_requires_network test_requires_command test_plugin_deps
+                 run_eval_expected slurp_file file_contains file_doesnt_contain);
+
+our $BaseDir;
+{
+    my @path = File::Spec->splitdir($FindBin::Bin);
+    while (my $dir = pop @path) {
+        if ($dir eq 't') {
+            $BaseDir = File::Spec->catfile(@path);
+            last;
+        }
+    }
+}
 
 sub test_requires() {
     my($mod, $ver) = @_;
@@ -32,6 +47,39 @@ sub test_requires_network {
     }
 }
 
+sub test_requires_command() {
+    my $command = shift;
+    for my $path (split /:/, $ENV{PATH}) {
+        if (-e File::Spec->catfile($path, $command) && -x _) {
+            return 1;
+        }
+    }
+    plan skip_all => "Test requires '$command' command but it's not found";
+}
+
+sub test_plugin_deps() {
+    my($mod, $no_warning) = @_;
+    $mod ||= File::Basename::basename($FindBin::Bin);
+    $mod =~ s!::!-!g;
+
+    my $file = File::Spec->catfile( $BaseDir, "deps", "$mod.yaml" );
+    unless (-e $file) {
+        warn "Can't find deps file for $mod" unless $no_warning;
+        return;
+    }
+
+    my $meta = YAML::LoadFile($file);
+
+    for my $plugin (@{ $meta->{bundles} || [] }) {
+        $plugin =~ s/::/-/g;
+        test_plugin_deps($plugin, 1);
+    }
+
+    while (my($mod, $ver) = each %{$meta->{depends}}) {
+        test_requires($mod, $ver);
+    }
+}
+
 sub run_eval_expected {
     run {
         my $block = shift;
@@ -41,22 +89,20 @@ sub run_eval_expected {
     };
 }
 
-sub slurp_file {
-    my $file = $self;
+sub slurp_file() {
+    my $file = shift;
     open my $fh, $file or return;
     return join '', <$fh>;
 }
 
-sub file_contains {
-    my $file = $self;
-    my($pattern) = @_;
+sub file_contains() {
+    my($file, $pattern) = @_;
 
     like slurp_file($file), $pattern;
 }
 
-sub file_doesnt_contain {
-    my $file = $self;
-    my($pattern) = @_;
+sub file_doesnt_contain() {
+    my($file, $pattern) = @_;
 
     my $content = slurp_file($file) or return fail("$file: $!");
     unlike $content, $pattern;

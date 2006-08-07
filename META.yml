@@ -3,6 +3,7 @@ author: Tatsuhiko Miyagawa <miyagawa@bulknews.net>
 build_requires: 
   Test::Base: 0.52
   Test::More: 0.42
+  YAML: 0
 distribution_type: module
 generated_by: Module::Install version 0.610
 license: perl
@@ -29,11 +30,13 @@ recommends:
   IPC::Run: 0
   Image::Info: 0
   JSON::Syck: 0.1
+  KinoSearch: 0
   MIME::Lite: 0
   Mail::Address: 0
   Mail::IMAPClient: 0
   Net::Delicious: 0
   Net::MovableType: 0
+  Net::NetSend: 0
   Net::SMTP::TLS: 0
   PDF::FromHTML: 0
   POE: 0
@@ -47,6 +50,7 @@ recommends:
   SVN::Core: 0
   SWF::Builder: 0
   Search::Estraier: 0
+  Spreadsheet::WriteExcel: 0
   Template::Plugin::JavaScript: 0
   Test::Pod: 0
   Test::Pod::Coverage: 0
@@ -57,10 +61,13 @@ recommends:
   Text::WrapI18N: 0
   Time::Duration::Parse: 0
   URI::Find: 0
+  WWW::Babelfish: 0
   WWW::Mechanize: 0
   WWW::Mixi: 0.46
   WebService::Bloglines: 0.11
+  XML::Atom: 0.20
   XML::FOAF: 0
+  XML::Feed: 0.09
   XML::Liberal: 0.13
   XML::OPML: 0
   XML::RSS::Liberal: 0
@@ -96,4 +103,4 @@ requires:
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.5
+version: 0.7.6
