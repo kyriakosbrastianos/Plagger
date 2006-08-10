@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.7.6';
+our $VERSION = '0.7.7';
 
 use 5.8.1;
 use Carp;
@@ -158,9 +158,14 @@ sub load_cache {
     my $dir  = $base eq 'config' ? ".plagger" : ".plagger-$base";
 
     # cache is auto-vivified but that's okay
-    $self->{conf}->{cache}->{base} ||= File::Spec->catfile($ENV{HOME}, $dir);
+    $self->{conf}->{cache}->{base} ||= File::Spec->catfile($self->home_dir, $dir);
 
     $self->cache( Plagger::Cache->new($self->{conf}->{cache}) );
+}
+
+sub home_dir {
+    eval { require File::HomeDir };
+    return $@ ? $ENV{HOME} : File::HomeDir->my_home;
 }
 
 sub load_plugins {

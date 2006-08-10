@@ -17,7 +17,7 @@ requires('DateTime::Format::W3CDTF');
 requires('DateTime::Format::Strptime');
 requires('Digest::MD5');
 requires('LWP');
-requires('HTML::Parser' => 3.48);
+requires('HTML::Parser' => 3.51);
 requires('URI::Fetch' => 0.071);
 requires('Cache::Cache' => 1.04);
 requires('Module::Pluggable::Fast');
@@ -26,12 +26,13 @@ requires('Date::Parse');
 requires('MIME::Types', 1.16);
 requires('Net::DNS');
 
-requires('XML::Feed', 0.09);
+requires('XML::Feed', 0.11);
 requires('XML::LibXML');
 requires('XML::Atom', 0.19);
 requires('XML::RSS::LibXML', 0.20);
 requires('Encode', 2.10);
 requires('Term::Encoding');
+requires('File::HomeDir');
 
 build_requires('YAML');
 build_requires('Test::More', 0.42);

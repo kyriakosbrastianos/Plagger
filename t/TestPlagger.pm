@@ -6,7 +6,8 @@ use Test::Base -Base;
 use Plagger;
 
 our @EXPORT = qw(test_requires test_requires_network test_requires_command test_plugin_deps
-                 run_eval_expected slurp_file file_contains file_doesnt_contain);
+                 run_eval_expected run_eval_expected_with_capture
+                 slurp_file file_contains file_doesnt_contain);
 
 our $BaseDir;
 {
@@ -17,6 +18,7 @@ our $BaseDir;
             last;
         }
     }
+    $BaseDir =~ s{\\}{/}g; # always use forward slash even on Win32
 }
 
 sub test_requires() {
@@ -87,6 +89,18 @@ sub run_eval_expected {
         eval $block->expected;
         fail $@ if $@;
     };
+}
+
+sub run_eval_expected_with_capture {
+    filters_delay;
+    for my $block (blocks) {
+        my $warning;
+        $SIG{__WARN__} = sub { $warning .= "@_" };
+        $block->run_filters;
+        my $context = $block->input;
+        eval $block->expected;
+        fail $@ if $@;
+    }
 }
 
 sub slurp_file() {

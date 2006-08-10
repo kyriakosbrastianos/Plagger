@@ -7,7 +7,7 @@ use URI::Fetch 0.06;
 
 sub new {
     my $class = shift;
-    my $self  = $class->SUPER::new();
+    my $self  = $class->SUPER::new(@_);
 
     my $conf = Plagger->context->conf->{user_agent};
     if ($conf->{cookies}) {
@@ -17,6 +17,8 @@ sub new {
     $self->agent( $conf->{agent} || "Plagger/$Plagger::VERSION (http://plagger.org/)" );
     $self->timeout( $conf->{timeout} || 15 );
     $self->env_proxy();
+
+    Plagger->context->run_hook('useragent.init', { ua => $self });
 
     $self;
 }
@@ -36,6 +38,13 @@ sub fetch {
     }
 
     $res;
+}
+
+sub request {
+    my $self = shift;
+    my($req) = @_;
+    Plagger->context->run_hook('useragent.request', { ua => $self, url => $req->uri });
+    $self->SUPER::request(@_);
 }
 
 sub mirror {

@@ -130,11 +130,19 @@ sub handle_feed {
         $entry->author(_u($e->author));
 
         my $category = $e->category;
-           $category = [ $category ] if $category && !ref($category);
+           $category = [ $category ] if $category && (!ref($category) || ref($category) ne 'ARRAY');
         $entry->tags([ map _u($_), @$category ]) if $category;
 
-        $entry->date( Plagger::Date->rebless($e->issued) )
-            if eval { $e->issued };
+        # XXX XML::Feed doesn't support extracting atom:category yet
+        if ($remote->format eq 'Atom' && $e->{entry}->can('categories')) {
+            my @categories = $e->{entry}->categories;
+            for my $cat (@categories) {
+                $entry->add_tag( $cat->label || $cat->term );
+            }
+        }
+
+        my $date = eval { $e->issued } || eval { $e->modified };
+        $entry->date( Plagger::Date->rebless($date) ) if $date;
 
         # xxx nasty hack. We should remove this once XML::Atom or XML::Feed is fixed
         if (!$entry->date && $remote->format eq 'Atom' && $e->{entry}->version eq '1.0') {
@@ -162,7 +170,7 @@ sub handle_feed {
                 $entry->add_enclosure($enclosure);
             }
         } elsif ($remote->format eq 'Atom') {
-            for my $link ( grep { $_->rel eq 'enclosure' } $e->{entry}->link ) {
+            for my $link ( grep { defined $_->rel && $_->rel eq 'enclosure' } $e->{entry}->link ) {
                 my $enclosure = Plagger::Enclosure->new;
                 $enclosure->url( URI->new($link->href) );
                 $enclosure->length($link->length);
