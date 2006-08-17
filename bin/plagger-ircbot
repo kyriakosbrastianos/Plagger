@@ -3,9 +3,13 @@ use warnings;
 use strict;
 
 use FindBin;
+use lib "$FindBin::Bin/../lib";
+
 use Getopt::Long;
 use List::Util qw(first);
 use YAML;
+
+use Plagger::ConfigLoader;
 
 use POE qw(
     Session
@@ -23,8 +27,13 @@ Getopt::Long::Configure("bundling"); # allows -c
 
 msg "loading configuration $path";
 
-my $config_yaml = YAML::LoadFile($path);
-my $plugin = first { $_->{module} eq 'Notify::IRC' } @{ $config_yaml->{plugins} }
+my $loader = Plagger::ConfigLoader->new;
+my $base_config = $loader->load($path);
+
+$loader->load_include($base_config);
+$loader->load_recipes($base_config);
+
+my $plugin = first { $_->{module} eq 'Notify::IRC' } @{ $base_config->{plugins} }
     or die "Can't find Notify::IRC config in $path";
 
 my $config = $plugin->{config};

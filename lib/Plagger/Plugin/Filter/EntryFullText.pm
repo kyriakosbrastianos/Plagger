@@ -29,6 +29,7 @@ sub init {
     $self->load_plugins();
 
     $self->{ua} = Plagger::UserAgent->new;
+    $self->{ua}->parse_head(0);
 }
 
 sub load_plugins {
@@ -115,7 +116,10 @@ sub filter {
 
     # NoNetwork: don't connect for 3 hours
     my $res = $self->{ua}->fetch( $args->{entry}->permalink, $self, { NoNetwork => 60 * 60 * 3 } );
-    return if !$res->status && $res->is_error;
+    if (!$res->status && $res->is_error) {
+        $self->log(debug => "Fetch " . $args->{entry}->permalink . " failed");
+        return;
+    }
 
     $args->{content} = decode_content($res);
 
@@ -232,9 +236,11 @@ sub extract {
     my($self, $args) = @_;
     my $data;
 
-    if (my @match = $args->{content} =~ /$self->{extract}/s) {
-        my @capture = split /\s+/, $self->{extract_capture};
-        @{$data}{@capture} = @match;
+    if ($self->{extract}) {
+	if (my @match = $args->{content} =~ /$self->{extract}/s) {
+	    my @capture = split /\s+/, $self->{extract_capture};
+	    @{$data}{@capture} = @match;
+	}
     }
 
     if ($self->{extract_xpath}) {

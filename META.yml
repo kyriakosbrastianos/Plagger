@@ -21,6 +21,7 @@ recommends:
   Date::Parse: 0
   DateTime::Format::Epoch: 0
   DateTime::Locale: 0
+  Email::Address: 0
   Encode::Detect: 0
   File::Copy::Recursive: 0
   Flickr::API: 0
@@ -102,10 +103,10 @@ requires:
   UNIVERSAL::require: 0.1
   URI::Fetch: 0.071
   XML::Atom: 0.19
-  XML::Feed: 0.11
+  XML::Feed: 0.12
   XML::LibXML: 0
   XML::RSS::LibXML: 0.2
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.7
+version: 0.7.8

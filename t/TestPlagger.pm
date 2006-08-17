@@ -1,24 +1,26 @@
 package t::TestPlagger;
+use Config;
 use FindBin;
 use File::Basename;
 use File::Spec;
 use Test::Base -Base;
+use URI::Escape ();
 use Plagger;
 
 our @EXPORT = qw(test_requires test_requires_network test_requires_command test_plugin_deps
                  run_eval_expected run_eval_expected_with_capture
                  slurp_file file_contains file_doesnt_contain);
 
-our $BaseDir;
+our($BaseDir, $BaseDirURI);
 {
     my @path = File::Spec->splitdir($FindBin::Bin);
     while (my $dir = pop @path) {
         if ($dir eq 't') {
             $BaseDir = File::Spec->catfile(@path);
+            $BaseDirURI = join "/", map URI::Escape::uri_escape($_), @path;
             last;
         }
     }
-    $BaseDir =~ s{\\}{/}g; # always use forward slash even on Win32
 }
 
 sub test_requires() {
@@ -35,23 +37,26 @@ sub test_requires() {
     }
 }
 
-sub has_network {
+sub has_network() {
+    my $host = shift;
     return if $ENV{NO_NETWORK};
 
     require IO::Socket::INET;
-    my $conn = IO::Socket::INET->new("www.google.com:80");
+    my $conn = IO::Socket::INET->new(PeerAddr => $host, Timeout => 15);
     defined $conn;
 }
 
-sub test_requires_network {
-    unless (has_network) {
-        plan skip_all => "Test requires network which is not available now.";
+sub test_requires_network() {
+    my $host = shift || 'www.google.com:80';
+
+    unless (has_network($host)) {
+        plan skip_all => "Test requires network($host) which is not available now.";
     }
 }
 
 sub test_requires_command() {
     my $command = shift;
-    for my $path (split /:/, $ENV{PATH}) {
+    for my $path (split /$Config::Config{path_sep}/, $ENV{PATH}) {
         if (-e File::Spec->catfile($path, $command) && -x _) {
             return 1;
         }
@@ -77,7 +82,7 @@ sub test_plugin_deps() {
         test_plugin_deps($plugin, 1);
     }
 
-    while (my($mod, $ver) = each %{$meta->{depends}}) {
+    while (my($mod, $ver) = each %{$meta->{depends} || {}}) {
         test_requires($mod, $ver);
     }
 }
@@ -95,8 +100,10 @@ sub run_eval_expected_with_capture {
     filters_delay;
     for my $block (blocks) {
         my $warning;
-        $SIG{__WARN__} = sub { $warning .= "@_" };
-        $block->run_filters;
+        {
+            local $SIG{__WARN__} = sub { $warning .= "@_" };
+            $block->run_filters;
+        }
         my $context = $block->input;
         eval $block->expected;
         fail $@ if $@;
@@ -124,12 +131,26 @@ sub file_doesnt_contain() {
 
 package t::TestPlagger::Filter;
 use Test::Base::Filter -base;
+use File::Temp ();
+
+sub interpolate {
+    my $stuff = shift;
+    $stuff =~ s/(?<!\\)(\$[\w\:]+)/$1/eeg;
+    $stuff =~ s/\\\$/\$/g;
+    $stuff;
+}
 
 sub config {
-    my $config = shift;
-    $config =~ s/(?<!\\)(\$[\w\:]+)/$1/eeg;
-    $config =~ s/\\\$/\$/g;
-    Plagger->bootstrap(config => YAML::Load($config));
+    my $yaml = shift;
+    $yaml = $self->interpolate($yaml);
+
+    # set sane defaults for testing
+    my $config = YAML::Load($yaml);
+    $config->{global}->{log}->{level}  ||= 'error' unless $ENV{TEST_VERBOSE};
+    $config->{global}->{assets_path}   ||= File::Spec->catfile($t::TestPlagger::BaseDir, 'assets');
+    $config->{global}->{cache}->{base} ||= File::Temp::tempdir(CLEANUP => 1);
+
+    Plagger->bootstrap(config => $config);
 }
 
 sub output_file {

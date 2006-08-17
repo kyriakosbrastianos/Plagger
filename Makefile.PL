@@ -26,7 +26,7 @@ requires('Date::Parse');
 requires('MIME::Types', 1.16);
 requires('Net::DNS');
 
-requires('XML::Feed', 0.11);
+requires('XML::Feed', 0.12);
 requires('XML::LibXML');
 requires('XML::Atom', 0.19);
 requires('XML::RSS::LibXML', 0.20);
@@ -35,6 +35,8 @@ requires('Term::Encoding');
 requires('File::HomeDir');
 
 build_requires('YAML');
+include_deps('YAML');
+
 build_requires('Test::More', 0.42);
 build_requires('Test::Base', 0.52);
 
@@ -76,7 +78,7 @@ while (my $f = $dh->read) {
         features(
             $meta->{name}, [
                 -default => $meta->{default},
-                map recommends($_ => $meta->{depends}->{$_}), keys %{$meta->{depends}},
+                map recommends($_ => $meta->{depends}->{$_}), keys %{$meta->{depends} || {}},
             ],
         );
     }

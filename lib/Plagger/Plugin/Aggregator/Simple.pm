@@ -95,6 +95,7 @@ sub handle_feed {
         $sweeper = XML::Liberal->globally_override('LibXML');
     }
 
+    local $XML::Atom::ForceUnicode = 1;
     my $remote = eval { XML::Feed->parse(\$args->{content}) };
 
     unless ($remote) {
@@ -137,7 +138,7 @@ sub handle_feed {
         if ($remote->format eq 'Atom' && $e->{entry}->can('categories')) {
             my @categories = $e->{entry}->categories;
             for my $cat (@categories) {
-                $entry->add_tag( $cat->label || $cat->term );
+                $entry->add_tag( _u($cat->label || $cat->term) );
             }
         }
 
@@ -185,7 +186,7 @@ sub handle_feed {
         my $media_ns = "http://search.yahoo.com/mrss";
         my $media = $e->{entry}->{$media_ns}->{group} || $e->{entry};
         my $content = $media->{$media_ns}->{content} || [];
-           $content = [ $content ] unless ref $content;
+           $content = [ $content ] unless ref $content && ref $content eq 'ARRAY';
 
         for my $media_content (@{$content}) {
             my $enclosure = Plagger::Enclosure->new;
