@@ -5,7 +5,7 @@ build_requires:
   Test::More: 0.42
   YAML: 0
 distribution_type: module
-generated_by: Module::Install version 0.610
+generated_by: Module::Install version 0.640
 license: perl
 name: Plagger
 no_index: 
@@ -18,6 +18,7 @@ recommends:
   Config::INI::Simple: 0
   DBIx::Class::Schema: 0
   DB_File: 0
+  Data::Serializer: 0
   Date::Parse: 0
   DateTime::Format::Epoch: 0
   DateTime::Locale: 0
@@ -25,19 +26,24 @@ recommends:
   Encode::Detect: 0
   File::Copy::Recursive: 0
   Flickr::API: 0
-  HTML::ResolveLink: 0.02
+  HTML::RSSAutodiscovery: 0
+  HTML::ResolveLink: 0
   HTML::Scrubber: 0
   HTML::TreeBuilder::XPath: 0
   HTTP::Cookies::Mozilla: 0
+  Hatena::Keyword: 0
   IPC::Run: 0
   Image::Info: 0
-  JSON::Syck: 0.1
+  JSON::Syck: 0
   KinoSearch: 0
   Lingua::ZH::HanDetect: 0
+  List::Util: 0
   Locale::Language: 0
   MIME::Lite: 0
   Mail::Address: 0
   Mail::IMAPClient: 0
+  Mail::SpamAssassin: 0
+  Net::DNS::Resolver: 0
   Net::Delicious: 0
   Net::MovableType: 0
   Net::NetSend: 0
@@ -63,6 +69,7 @@ recommends:
   Text::Hatena: 0
   Text::Kakasi: 0
   Text::Language::Guess: 0
+  Text::Markdown: 0
   Text::WrapI18N: 0
   Time::Duration::Parse: 0
   URI::Find: 0
@@ -73,8 +80,8 @@ recommends:
   XML::Atom: 0.20
   XML::FOAF: 0
   XML::Feed: 0.09
+  XML::LibXML::SAX: 0
   XML::Liberal: 0.13
-  XML::OPML: 0
   XML::RSS::Liberal: 0
   XMLRPC::Lite: 0
   Xango: 1.04
@@ -109,4 +116,4 @@ requires:
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.8
+version: 0.7.9

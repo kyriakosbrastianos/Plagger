@@ -14,7 +14,7 @@ our @EXPORT = qw(test_requires test_requires_network test_requires_command test_
 our($BaseDir, $BaseDirURI);
 {
     my @path = File::Spec->splitdir($FindBin::Bin);
-    while (my $dir = pop @path) {
+    while (defined(my $dir = pop @path)) {
         if ($dir eq 't') {
             $BaseDir = File::Spec->catfile(@path);
             $BaseDirURI = join "/", map URI::Escape::uri_escape($_), @path;
@@ -33,7 +33,12 @@ sub test_requires() {
     }
 
     if ($@) {
-        plan skip_all => "$@";
+        if ($@ =~ /^Can't locate/) {
+            plan skip_all => "Test requires module '$mod' but it's not found";
+        }
+        else {
+            plan skip_all => "$@";
+        }
     }
 }
 
@@ -48,6 +53,7 @@ sub has_network() {
 
 sub test_requires_network() {
     my $host = shift || 'www.google.com:80';
+       $host .= ":80" if $host !~ /:/;
 
     unless (has_network($host)) {
         plan skip_all => "Test requires network($host) which is not available now.";
@@ -76,6 +82,10 @@ sub test_plugin_deps() {
     }
 
     my $meta = YAML::LoadFile($file);
+
+    if ($meta->{platform} && $meta->{platform} ne $^O) {
+        plan skip_all => "Test requires to be run on '$meta->{platform}'";
+    }
 
     for my $plugin (@{ $meta->{bundles} || [] }) {
         $plugin =~ s/::/-/g;

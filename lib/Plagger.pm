@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.7.8';
+our $VERSION = '0.7.9';
 
 use 5.8.1;
 use Carp;
@@ -25,10 +25,13 @@ use Plagger::Feed;
 use Plagger::Subscription;
 use Plagger::Template;
 use Plagger::Update;
+use Plagger::UserAgent; # use to define $XML::Feed::RSS::PREFERRED_PARSER
 
-sub context { undef }
+my $context;
+sub context     { $context }
+sub set_context { $context = $_[1] }
 
-sub bootstrap {
+sub new {
     my($class, %opt) = @_;
 
     my $self = bless {
@@ -51,16 +54,27 @@ sub bootstrap {
         $self->{conf}->{log}->{encoding} ||= Term::Encoding::get_encoding();
     }
 
-    no warnings 'redefine';
-    local *Plagger::context = sub { $self };
+    Plagger->set_context($self);
 
     $loader->load_recipes($config);
     $self->load_cache($opt{config});
     $self->load_plugins(@{ $config->{plugins} || [] });
     $self->rewrite_config if @{ $self->{rewrite_tasks} };
-    $self->run();
 
     $self;
+}
+
+sub bootstrap {
+    my $class = shift;
+    my $self = $class->new(@_);
+    $self->run();
+    $self;
+}
+
+sub clear_session {
+    my $self = shift;
+    $self->{update}       = Plagger::Update->new;
+    $self->{subscription} = Plagger::Subscription->new;
 }
 
 sub add_rewrite_task {
@@ -290,6 +304,25 @@ sub run {
     }
 
     $self->run_hook('aggregator.finalize');
+    $self->do_run_with_feeds;
+    $self->run_hook('plugin.finalize');
+
+    Plagger->set_context(undef);
+    $self;
+}
+
+sub run_with_feeds {
+    my $self = shift;
+    $self->run_hook('plugin.init');
+    $self->do_run_with_feeds;
+    $self->run_hook('plugin.finalize');
+
+    Plagger->set_context(undef);
+    $self;
+}
+
+sub do_run_with_feeds {
+    my $self = shift;
 
     for my $feed ($self->update->feeds) {
         for my $entry ($feed->entries) {
@@ -325,6 +358,19 @@ sub run {
     $self->run_hook('publish.finalize');
 }
 
+sub search {
+    my($self, $query) = @_;
+
+    Plagger->set_context($self);
+    $self->run_hook('plugin.init');
+
+    my @feeds;
+    $context->run_hook('searcher.search', { query => $query }, 0, sub { push @feeds, $_[0] });
+
+    Plagger->set_context(undef);
+    return @feeds;
+}
+
 sub log {
     my($self, $level, $msg, %opt) = @_;
 
@@ -342,9 +388,9 @@ sub log {
     }
 
     chomp($msg);
-    if ($self->{log}->{encoding}) {
+    if ($self->conf->{log}->{encoding}) {
         $msg = Encode::decode_utf8($msg) unless utf8::is_utf8($msg);
-        $msg = Encode::encode($self->{log}->{encoding}, $msg);
+        $msg = Encode::encode($self->conf->{log}->{encoding}, $msg);
     }
     warn "$caller [$level] $msg\n";
 }
@@ -378,7 +424,7 @@ sub template {
     my $self = shift;
     $self->log(error => "\$context->template is DEPRECATED NOW. use \$plugin->templatize()");
     my $plugin = shift || (caller)[0];
-    Plagger::Template->new($self, $plugin->class_id);
+    Plagger::Template->new($self, $plugin);
 }
 
 sub templatize {
