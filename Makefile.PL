@@ -28,7 +28,7 @@ requires('Net::DNS');
 
 requires('XML::Feed', 0.12);
 requires('XML::LibXML');
-requires('XML::Atom', 0.19);
+requires('XML::Atom', 0.23);
 requires('XML::RSS::LibXML', 0.20);
 requires('Encode', 2.10);
 requires('Term::Encoding');
@@ -42,7 +42,7 @@ build_requires('Test::Base', 0.52);
 
 features(
     'Better Encoding detection' => [
-        -default => 1,
+        -default => 0,
         recommends('Encode::Detect'),
     ],
     'POD Testing' => [
@@ -56,7 +56,7 @@ features(
     ],
     'Liberal XML parsing' => [
         -default => 1,
-        recommends('XML::Liberal', 0.13),
+        recommends('XML::Liberal', 0.14),
         recommends('XML::RSS::Liberal'),
     ],
     'XPath support in Subscription and Feed Upgrader' => [
@@ -90,6 +90,7 @@ use_test_base;
 
 auto_include;
 auto_install;
+
 install_script('plagger');
 install_script('bin/plagger-ircbot');
 WriteAll;

@@ -1,5 +1,5 @@
 # Plagger::Plugin::Publish::OutlineText
-# $Id: /mirror/plagger/trunk/plagger/lib/Plagger/Plugin/Publish/OutlineText.pm 2352 2006-05-24T06:42:46.048594Z cheebow  $
+# $Id: /mirror/plagger/trunk/plagger/lib/Plagger/Plugin/Publish/OutlineText.pm 4054 2006-08-24T09:32:37.524228Z miyagawa  $
 package Plagger::Plugin::Publish::OutlineText;
 use strict;
 use base qw( Plagger::Plugin );
@@ -34,7 +34,7 @@ sub finalize {
         $out .= '.' . $feed->title . "\n";
 
         foreach my $entry (@{ $feed->entries }) {
-            $out .= '..' . $entry->title . "\n";
+            $out .= '..' . ($entry->title || '') . "\n";
 
             my $body = $entry->body_text;
             $body =~ s/^\./ \./g;

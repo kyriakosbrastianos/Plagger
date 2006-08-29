@@ -52,7 +52,7 @@ sub load_plugin {
 sub load_plugin_perl {
     my($self, $file, $base) = @_;
 
-    open my $fh, $file or Plagger->context->error("$file: $!");
+    open my $fh, '<', $file or Plagger->context->error("$file: $!");
     (my $pkg = $base) =~ s/\.pl$//;
     my $plugin_class = "Plagger::Plugin::Filter::FindEnclosures::Site::$pkg";
 
@@ -181,7 +181,7 @@ sub has_enclosure_mime_type {
     my($self, $url, $type) = @_;
 
     my $mime = $type ? MIME::Type->new(type => $type) : Plagger::Util::mime_type_of( URI->new($url) );
-    $mime && $mime->mediaType =~ m!^(?:audio|video|image)$!;
+    Plagger::Util::mime_is_enclosure($mime);
 }
 
 package Plagger::Plugin::Filter::FindEnclosures::Site;

@@ -81,7 +81,7 @@ recommends:
   XML::FOAF: 0
   XML::Feed: 0.09
   XML::LibXML::SAX: 0
-  XML::Liberal: 0.13
+  XML::Liberal: 0.14
   XML::RSS::Liberal: 0
   XMLRPC::Lite: 0
   Xango: 1.04
@@ -109,11 +109,11 @@ requires:
   Text::Tags: 0
   UNIVERSAL::require: 0.1
   URI::Fetch: 0.071
-  XML::Atom: 0.19
+  XML::Atom: 0.23
   XML::Feed: 0.12
   XML::LibXML: 0
   XML::RSS::LibXML: 0.2
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.9
+version: 0.7.10

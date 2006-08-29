@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.7.9';
+our $VERSION = '0.7.10';
 
 use 5.8.1;
 use Carp;
@@ -44,7 +44,7 @@ sub new {
     }, $class;
 
     my $loader = Plagger::ConfigLoader->new;
-    my $config = $loader->load($opt{config});
+    my $config = $loader->load($opt{config}, $self);
 
     $loader->load_include($config);
     $self->{conf} = $config->{global};
@@ -90,7 +90,7 @@ sub rewrite_config {
         return;
     }
 
-    open my $fh, $self->{config_path} or $self->error("$self->{config_path}: $!");
+    open my $fh, '<', $self->{config_path} or $self->error("$self->{config_path}: $!");
     my $data = join '', <$fh>;
     close $fh;
 
@@ -186,7 +186,7 @@ sub add_plugin_path {
 sub extract_package {
     my($self, $file) = @_;
 
-    open my $fh, $file or die "$file: $!";
+    open my $fh, '<', $file or die "$file: $!";
     while (<$fh>) {
         /^package (Plagger::Plugin::.*?);/ and return $1;
     }
