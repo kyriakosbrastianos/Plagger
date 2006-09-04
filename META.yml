@@ -27,14 +27,14 @@ recommends:
   File::Copy::Recursive: 0
   Flickr::API: 0
   HTML::RSSAutodiscovery: 0
-  HTML::ResolveLink: 0
+  HTML::ResolveLink: 0.02
   HTML::Scrubber: 0
   HTML::TreeBuilder::XPath: 0
   HTTP::Cookies::Mozilla: 0
   Hatena::Keyword: 0
   IPC::Run: 0
   Image::Info: 0
-  JSON::Syck: 0
+  JSON::Syck: 0.1
   KinoSearch: 0
   Lingua::ZH::HanDetect: 0
   List::Util: 0
@@ -116,4 +116,4 @@ requires:
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.10
+version: 0.7.11
