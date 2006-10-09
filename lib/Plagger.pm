@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.7.12';
+our $VERSION = '0.7.13';
 
 use 5.8.1;
 use Carp;
@@ -297,8 +297,8 @@ sub run {
         } else {
             my $ok = $self->run_hook_once('customfeed.handle', { feed => $feed });
             if (!$ok) {
-                Plagger->context->log(error => $feed->url . " is not aggregated by any aggregator");
-                Plagger->context->subscription->delete_feed($feed);
+                $self->log(error => $feed->url . " is not aggregated by any aggregator");
+                $self->subscription->delete_feed($feed);
             }
         }
     }

@@ -18,6 +18,7 @@ recommends:
   Config::INI::Simple: 0
   DBIx::Class::Schema: 0
   DB_File: 0
+  Data::ICal: 0
   Data::Serializer: 0
   Date::Parse: 0
   DateTime::Format::Epoch: 0
@@ -27,9 +28,9 @@ recommends:
   File::Copy::Recursive: 0
   File::Grep: 0
   Flickr::API: 0
-  HTML::RSSAutodiscovery: 0
   HTML::ResolveLink: 0.02
   HTML::Scrubber: 0
+  HTML::TokeParser: 0
   HTML::TreeBuilder::XPath: 0
   HTTP::Cookies::Mozilla: 0
   Hatena::Keyword: 0
@@ -87,6 +88,7 @@ recommends:
   XML::RSS::Liberal: 0
   XMLRPC::Lite: 0
   Xango: 1.04
+  YAML::Syck: 0
 requires: 
   Cache::Cache: 1.04
   Class::Accessor::Fast: 0
@@ -118,4 +120,4 @@ requires:
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.12
+version: 0.7.13
