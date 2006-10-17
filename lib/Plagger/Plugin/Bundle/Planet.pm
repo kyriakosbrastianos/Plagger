@@ -23,6 +23,10 @@ sub register {
         config => $self->conf->{scrubber} || {},
     });
 
+    $context->load_plugin({
+        module => 'Filter::GuessTimeZoneByDomain',
+    });
+
     my @rules;
     my $duration = defined $self->conf->{duration}
         ? $self->conf->{duration} : "7 days";
@@ -142,6 +146,8 @@ configurations.
 
 =item Filter::HTMLScrubber
 
+=item Filter::GuessTimeZoneByDomain
+
 =item SmartFeed::All
 
 =item Publish::Planet
@@ -185,7 +191,7 @@ all the entries aggregated. Defaults to I<7 days>.
 
 =item extra_rule
 
-Additional rule to add to filter entris using SmartFeed::All. Optional and defaults to nothing.
+Additional rule to add to filter entries using SmartFeed::All. Optional and defaults to nothing.
 
 =item description
 

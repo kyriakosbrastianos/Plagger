@@ -12,7 +12,7 @@ use Locale::Language;
 sub register {
     my($self, $context) = @_;
 
-    $context->autoload_plugin('Filter::GuessLanguage');
+    $context->autoload_plugin({ module => 'Filter::GuessLanguage' });
     $context->register_hook(
         $self,
         'plugin.init'        => \&connect_to_babelfish,
@@ -127,7 +127,7 @@ Plagger::Plugin::Filter::Babelfish - translate via WWW::Babelfish
 
 =head1 DESCRIPTION
 
-This plugin translates each entry body via Bebelfish.
+This plugin translates each entry body via Babelfish.
 See L<WWW::Babelfish> for details.
 
 =head1 CONFIG

@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.7.13';
+our $VERSION = '0.7.14';
 
 use 5.8.1;
 use Carp;
@@ -196,8 +196,8 @@ sub extract_package {
 
 sub autoload_plugin {
     my($self, $plugin) = @_;
-    unless ($self->is_loaded($plugin)) {
-        $self->load_plugin({ module => $plugin });
+    unless ($self->is_loaded($plugin->{module})) {
+        $self->load_plugin($plugin);
     }
 }
 
@@ -273,6 +273,7 @@ sub run_hook {
         }
     }
 
+    return if $once;
     return @ret;
 }
 
@@ -284,12 +285,10 @@ sub run_hook_once {
 sub run {
     my $self = shift;
 
+    $self->autoload_plugin({ module => 'Bundle::Defaults' });
+
     $self->run_hook('plugin.init');
     $self->run_hook('subscription.load');
-
-    unless ( $self->is_loaded(qr/^Aggregator::/) ) {
-        $self->load_plugin({ module => 'Aggregator::Simple' });
-    }
 
     for my $feed ($self->subscription->feeds) {
         if (my $sub = $feed->aggregator) {

@@ -12,7 +12,7 @@ $XML::Feed::RSS::PREFERRED_PARSER = "XML::RSS::LibXML";
 
 sub register {
     my($self, $context) = @_;
-    $context->autoload_plugin('Filter::FloatingDateTime');
+    $context->autoload_plugin({ module => 'Filter::FloatingDateTime' });
     $context->register_hook(
         $self,
         'publish.feed' => \&publish_feed,
@@ -159,7 +159,7 @@ __END__
 
 Plagger::Plugin::Publish::Feed - republish RSS/Atom feeds
 
-=head1 SYNOPSYS
+=head1 SYNOPSIS
 
   - module: Publish::Feed
     config:
@@ -214,7 +214,7 @@ Whether to publish full content feed. Defaults to 1.
 
 =head1 AUTHOR
 
-Yoshiki KURIHARA
+Yoshiki Kurihara
 
 Tatsuhiko Miyagawa
 

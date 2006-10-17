@@ -6,6 +6,7 @@ use File::Spec;
 use Data::ICal;
 use Data::ICal::Entry::Event;
 use DateTime::Duration;
+use DateTime::Format::ICal;
 use Plagger::Util;
 
 sub register {
@@ -39,20 +40,21 @@ sub publish_feed {
         my $date  = $entry->date;
         my $event = Data::ICal::Entry::Event->new;
 
-        my($dtstart, $dtend);
+        my $tz = $date->time_zone;
+
+        my $dt = [ $date->format('ICal'), {} ];
+        $dt->[0] =~ s/^TZID=(.*?)://
+            and $dt->[1]->{TZID} = $1;
+
         if ($date->hms eq '00:00:00') {
-            $dtstart = [ $date->strftime('%Y%m%d'), { VALUE => 'DATE' } ];
-            $dtend   = [ $date->strftime('%Y%m%d'), { VALUE => 'DATE' } ];
-        } else {
-            $dtstart = $date->strftime('%Y%m%dT%H%M%S');
-            $dtend   = $date->strftime('%Y%m%dT%H%M%S');
+            $dt->[1]->{VALUE} = 'DATE';
         }
 
         $event->add_properties(
             summary     => $entry->title,
-            description => $entry->summary || $entry->body || '', # xxx plaintext
-            dtstart     => $dtstart,
-            dtend       => $dtend,
+            description => $entry->summary ? $entry->summary->plaintext : '',
+            dtstart     => $dt,
+            dtend       => $dt,
         );
         $ical->add_entry($event);
     }
@@ -70,7 +72,6 @@ sub publish_feed {
     $context->log(info => "Wrote iCalendar file to $path");
 }
 
-
 1;
 __END__
 
@@ -86,7 +87,7 @@ Plagger::Plugin::Publish::iCal - Produces iCal file out of the feed
 
 =head1 DESCRIPTION
 
-Publish::iCal creates iCal (.ics) files usine feed items. Every feed
+Publish::iCal creates iCal (.ics) files using feed items. Every feed
 is a calendar and each entry is a schedule item. Entry's posted
 date/time is used as a schedule date/time and so on.
 

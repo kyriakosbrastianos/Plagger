@@ -35,6 +35,7 @@ requires('Term::Encoding');
 requires('File::HomeDir');
 
 build_requires('YAML');
+build_requires('YAML::Loader');
 include_deps('YAML');
 
 build_requires('Test::More', 0.42);
@@ -62,6 +63,11 @@ features(
     'XPath support in Subscription and Feed Upgrader' => [
         -default => 1,
         recommends('HTML::TreeBuilder::XPath'),
+    ],
+    'Better html to text formatter' => [
+        -default => 1,
+        recommends('HTML::TreeBuilder'),
+        recommends('HTML::FormatText'),
     ],
 );
 

@@ -1,6 +1,6 @@
 package Plagger::Plugin::CustomFeed::Script;
 use strict;
-use base qw( Plagger::Plugin );
+use base qw( Plagger::Plugin::Aggregator::Simple );
 
 use URI;
 use URI::Escape;
@@ -45,9 +45,10 @@ sub aggregate {
     # TODO: check BOM?
     if ($output =~ /^<\?xml/) {
         $context->log(debug => "Looks like output is RSS/Atom");
-        $self->Plagger::Plugin::Aggregator::Simple::handle_feed($args->{feed}->url, \$output, $args->{feed});
+        $self->SUPER::handle_feed($args->{feed}->url, \$output, $args->{feed});
     } else {
         eval {
+            local $YAML::Syck::ImplicitUnicode = 1;
             my $feed = YAML::Syck::Load($output);
             $context->log(debug => "Looks like output is YAML");
             local $self->{conf} = $feed;
