@@ -25,9 +25,9 @@ recommends:
   DateTime::Format::Epoch: 0
   DateTime::Format::ICal: 0
   DateTime::Locale: 0
-  DateTime::TimeZone: 0.51
+  DateTime::TimeZone: 0.54
   Email::Address: 0
-  Encode::Detect: 0
+  Encode::Detect: 1
   File::Copy::Recursive: 0
   File::Grep: 0
   Flickr::API: 0
@@ -128,4 +128,4 @@ requires:
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.14
+version: 0.7.15
