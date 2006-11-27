@@ -52,7 +52,7 @@ sub publish_feed {
         if $f->primary_author;
 
     if ($feed_format eq 'Atom') {
-        $feed->{atom}->id("tag:plagger.org,2006:" . $f->id);
+        $feed->{atom}->id("tag:plagger.org,2006:" . $f->id); # XXX what if id is empty?
     }
 
     # add entry
@@ -71,11 +71,10 @@ sub publish_feed {
             }
         }
 
-        $entry->category(join(' ', @{$e->tags}));
+        $entry->category(join(' ', @{$e->tags})) if @{$e->tags};
         $entry->issued($e->date)   if $e->date;
         $entry->modified($e->date) if $e->date;
 
-        $entry->author( $self->make_author($e->author, $feed_format) );
         if ($feed_format eq 'RSS') {
             my $author = 'nobody@example.com';
             $author .= ' (' . $e->author . ')' if $e->author;

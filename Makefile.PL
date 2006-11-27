@@ -11,7 +11,9 @@ requires('Template', 2.13);
 requires('Template::Provider::Encoding' => 0.04);
 requires('YAML' => 0.39);
 requires('Text::Tags');
-requires('DateTime' => 0.29);
+requires('DateTime' => 0.35);
+requires('DateTime::TimeZone' => 0.56);
+requires('DateTime::Locale' => 0.32);
 requires('DateTime::Format::Mail');
 requires('DateTime::Format::W3CDTF');
 requires('DateTime::Format::Strptime');
@@ -68,6 +70,10 @@ features(
         -default => 1,
         recommends('HTML::TreeBuilder'),
         recommends('HTML::FormatText'),
+    ],
+    'Parse Japanese datetime format' => [
+        -default => 0,
+        recommends('DateTime::Format::Japanese'),
     ],
 );
 

@@ -1,6 +1,6 @@
-name: Summary::GetSen
+name: Summary::Japanese
 author: Tatsuhiko Miyagawa
 depends:
-  XMLRPC::Lite: 0
+  Lingua::JA::Summarize::Extract: 0
 bundles:
   - Filter::GuessLanguage
