@@ -1,6 +1,6 @@
 package Plagger;
 use strict;
-our $VERSION = '0.7.16';
+our $VERSION = '0.7.17';
 
 use 5.8.1;
 use Carp;
@@ -293,6 +293,7 @@ sub run {
     for my $feed ($self->subscription->feeds) {
         if (my $sub = $feed->aggregator) {
             $sub->($self, { feed => $feed });
+            $feed->aggregator(undef); # for cloning
         } else {
             my $ok = $self->run_hook_once('customfeed.handle', { feed => $feed });
             if (!$ok) {

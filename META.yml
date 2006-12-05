@@ -34,6 +34,7 @@ recommends:
   HTML::FormatText: 0
   HTML::ResolveLink: 0.02
   HTML::Scrubber: 0
+  HTML::Tidy: 1.07
   HTML::TokeParser: 0
   HTML::TreeBuilder: 0
   HTML::TreeBuilder::XPath: 0
@@ -132,4 +133,4 @@ requires:
   YAML: 0.39
   perl: 5.8.1
 tests: t/*.t t/*/*.t t/*/*/*.t
-version: 0.7.16
+version: 0.7.17

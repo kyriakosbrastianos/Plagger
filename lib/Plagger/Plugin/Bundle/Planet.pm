@@ -18,6 +18,13 @@ sub register {
         module => 'Filter::StripTagsFromTitle',
     });
 
+    eval { require HTML::Tidy };
+    unless ($@) {
+        $context->load_plugin({
+            module => 'Filter::HTMLTidy',
+        });
+    }
+
     $context->load_plugin({
         module => 'Filter::HTMLScrubber',
         config => $self->conf->{scrubber} || {},
@@ -81,6 +88,7 @@ sub register {
             dir => $self->conf->{dir},
             filename => 'atom.xml',
             format => 'Atom',
+            taguri_base => URI->new($self->conf->{url})->host,
         },
     });
 
@@ -143,6 +151,8 @@ configurations.
 =over 4
 
 =item Filter::StripTagsFromTitle
+
+=item Filter::HTMLTidy (if HTML::Tidy is available)
 
 =item Filter::HTMLScrubber
 

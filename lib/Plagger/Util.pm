@@ -214,7 +214,7 @@ sub safe_filename {
 }
 
 sub safe_id {
-    my $id = shift;
+    my $id = "$_[0]"; # force stringify
     $id =~ s/^urn:guid://;
     $id =~ /^([\w\-]+)$/ ? $1 : Digest::MD5::md5_hex($id);
 }
